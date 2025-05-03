@@ -28,6 +28,8 @@ void initWebServer()
   // Handle API request to set the brightness (0..255);
   server.on("/api/brightness", HTTP_PATCH, handleSetBrightness);
   server.on("/api/data", HTTP_GET, handleGetData);
+  server.on("/api/data_json", HTTP_GET, handleGetDataJson);
+  server.on("/api/draw", HTTP_POST, handleDraw);
 
   // Scheduler
   server.on("/api/schedule", HTTP_POST, handleSetSchedule);

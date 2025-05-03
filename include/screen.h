@@ -15,6 +15,7 @@ private:
   uint8_t renderBuffer_[ROWS * COLS];
   uint8_t rotatedRenderBuffer_[ROWS * COLS];
   uint8_t cache_[ROWS * COLS];
+  uint8_t endpointCache_[ROWS * COLS];
   uint8_t positions[ROWS * COLS] = {
       0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
       0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
@@ -62,10 +63,15 @@ public:
   void setup();
 
   void loadFromStorage();
+  void loadFromEndpointStorage();
   void persist();
+  void persistEndpoint();
   bool isCacheEmpty() const;
+  bool isEndpointCacheEmpty() const;
   void cacheCurrent();
   void restoreCache();
+  void endpointCacheCurrent();
+  void endpointRestoreCache();
   uint8_t getBufferIndex(int index);
 
   void drawLine(int x1, int y1, int x2, int y2, int ledStatus, uint8_t brightness = 255);

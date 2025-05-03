@@ -16,6 +16,7 @@ int Plugin::getId() const
 void Plugin::teardown() {}
 void Plugin::loop() {}
 void Plugin::websocketHook(DynamicJsonDocument &request) {}
+const char* Plugin::restHook(const char *command, const char *dataJson) { return "not_supported"; }
 
 PluginManager::PluginManager() : nextPluginId(1) {}
 

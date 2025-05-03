@@ -30,7 +30,9 @@ private:
       179, 227, 323, 326, 329,
       332, 335, 338, 368, 371,
       392, 395, 230, 350};
-
+  int lastWeather = -1;
+  int lastTemperature = 10000;
+  void drawWeatherAndTemperature(int weather, int temperature);
 public:
   void update();
   void setup() override;

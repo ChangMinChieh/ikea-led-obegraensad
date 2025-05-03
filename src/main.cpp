@@ -21,6 +21,7 @@
 #include "plugins/BreakoutPlugin.h"
 #include "plugins/CirclePlugin.h"
 #include "plugins/DrawPlugin.h"
+#include "plugins/EmptyScreenPlugin.h"
 #include "plugins/FireworkPlugin.h"
 #include "plugins/GameOfLifePlugin.h"
 #include "plugins/LinesPlugin.h"
@@ -28,15 +29,18 @@
 #include "plugins/SnakePlugin.h"
 #include "plugins/StarsPlugin.h"
 #include "plugins/PongClockPlugin.h"
+#include "plugins/SnakeClockPlugin.h"
 #include "plugins/TickingClockPlugin.h"
-#include "plugins/DDPPlugin.h"
+// #include "plugins/DDPPlugin.h"
 
 #ifdef ENABLE_SERVER
 #include "plugins/AnimationPlugin.h"
 #include "plugins/BigClockPlugin.h"
 #include "plugins/ClockPlugin.h"
-#include "plugins/WeatherPlugin.h"
-#include "plugins/AnimationPlugin.h"
+#include "plugins/DrawEndpointPlugin.h"
+// #include "plugins/WeatherPlugin.h"
+#include "plugins/HAWeatherPlugin.h"
+// #include "plugins/AnimationPlugin.h"
 #endif
 
 #include "asyncwebserver.h"
@@ -160,6 +164,7 @@ void baseSetup()
   pluginManager.addPlugin(new DrawPlugin());
   pluginManager.addPlugin(new BreakoutPlugin());
   pluginManager.addPlugin(new SnakePlugin());
+  pluginManager.addPlugin(new EmptyScreenPlugin());
   pluginManager.addPlugin(new GameOfLifePlugin());
   pluginManager.addPlugin(new StarsPlugin());
   pluginManager.addPlugin(new LinesPlugin());
@@ -170,11 +175,14 @@ void baseSetup()
 #ifdef ENABLE_SERVER
   pluginManager.addPlugin(new BigClockPlugin());
   pluginManager.addPlugin(new ClockPlugin());
+  pluginManager.addPlugin(new SnakeClockPlugin());
+  pluginManager.addPlugin(new DrawEndpointPlugin());
+  pluginManager.addPlugin(new HAWeatherPlugin());
   pluginManager.addPlugin(new PongClockPlugin());
   pluginManager.addPlugin(new TickingClockPlugin());
-  pluginManager.addPlugin(new WeatherPlugin());
-  pluginManager.addPlugin(new AnimationPlugin());
-  pluginManager.addPlugin(new DDPPlugin());
+  // pluginManager.addPlugin(new WeatherPlugin());
+  // pluginManager.addPlugin(new AnimationPlugin());
+  // pluginManager.addPlugin(new DDPPlugin());
 #endif
 
   pluginManager.init();

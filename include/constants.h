@@ -38,6 +38,10 @@
 // set your city or coords (https://github.com/chubin/wttr.in)
 #define WEATHER_LOCATION "Hamburg"
 
+// set your HA url and weather entity for Home Assistant Weather plugin
+#define HA_URL "http://192.168.0.2:8123"
+#define HA_ENTITY "weather.openweathermap"
+
 // name of WiFi created by the device if no known WiFi is available
 #define WIFI_MANAGER_SSID "Ikea Display Setup WiFi"
 

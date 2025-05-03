@@ -88,6 +88,20 @@ void handleSetPlugin(AsyncWebServerRequest *request)
     }
 }
 
+void handleDraw(AsyncWebServerRequest *request)
+{
+    String drawData = request->arg("draw");
+    pluginManager.setActivePlugin("Draw Endpoint");
+    const char* outputHook = pluginManager.getActivePlugin() -> restHook("draw", drawData.c_str());
+    StaticJsonDocument<256> jsonResponse;
+    jsonResponse["status"] = "success";
+    jsonResponse["message"] = "Plugin set successfully";
+    jsonResponse["output"] = outputHook;
+    String output;
+    serializeJson(jsonResponse, output);
+    request->send(200, "application/json", output);
+}
+
 void handleSetBrightness(AsyncWebServerRequest *request)
 {
     int value = request->arg("value").toInt();
@@ -143,9 +157,29 @@ void handleGetData(AsyncWebServerRequest *request)
     }
 }
 
+void handleGetDataJson(AsyncWebServerRequest *request)
+{
+    DynamicJsonDocument jsonDocument(5120);
+    JsonArray dataArray = jsonDocument.createNestedArray("data");
+    int currentpos_src = 0;
+    for (int row = 0; row < ROWS; row++)
+    {
+        for (int col = 0; col < COLS; col++)
+        {
+            dataArray.add(Screen.getRenderBuffer()[currentpos_src]);
+            currentpos_src += 1;
+        }
+    }
+    String output;
+    serializeJson(jsonDocument, output);
+    jsonDocument.clear();
+
+    request->send(200, "application/json", output);
+}
+
 void handleGetInfo(AsyncWebServerRequest *request)
 {
-    DynamicJsonDocument jsonDocument(6144);
+    DynamicJsonDocument jsonDocument(5120);
     jsonDocument["rows"] = ROWS;
     jsonDocument["cols"] = COLS;
     jsonDocument["status"] = currentStatus;

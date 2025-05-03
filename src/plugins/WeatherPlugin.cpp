@@ -10,14 +10,23 @@ void WeatherPlugin::setup()
     // loading screen
     Screen.clear();
     currentStatus = LOADING;
-    Screen.setPixel(4, 7, 1);
-    Screen.setPixel(5, 7, 1);
-    Screen.setPixel(7, 7, 1);
-    Screen.setPixel(8, 7, 1);
-    Screen.setPixel(10, 7, 1);
-    Screen.setPixel(11, 7, 1);
-    this->lastUpdate = millis();
-    this->update();
+    if(this->lastTemperature == 10000 || this->lastWeather==-1){
+      Screen.setPixel(4, 7, 1);
+      Screen.setPixel(5, 7, 1);
+      Screen.setPixel(7, 7, 1);
+      Screen.setPixel(8, 7, 1);
+      Screen.setPixel(10, 7, 1);
+      Screen.setPixel(11, 7, 1);
+    }
+    else {
+        this->drawWeatherAndTemperature(this->lastWeather, this->lastTemperature);
+    }
+
+    if (this->lastUpdate == 0 || millis() >= this->lastUpdate + (1000 * 60 * 30))
+    {
+        this->lastUpdate = millis();
+        this->update();
+    }
     currentStatus = NONE;
 }
 
@@ -50,42 +59,52 @@ void WeatherPlugin::update()
 
         int temperature = round(doc["current_condition"][0]["temp_C"].as<float>());
         int weatherCode = doc["current_condition"][0]["weatherCode"].as<int>();
+
+        if(this -> lastTemperature != temperature || this -> lastWeather != weatherCode){
+            this -> lastTemperature = temperature;
+            this -> lastWeather = weatherCode;
+            this -> drawWeatherAndTemperature(weatherCode, temperature);
+        }
+    }
+}
+
+void WeatherPlugin::drawWeatherAndTemperature(int weatherCode, int temperature) {
         int weatherIcon = 0;
         int iconY = 1;
         int tempY = 10;
 
         if (std::find(thunderCodes.begin(), thunderCodes.end(), weatherCode) != thunderCodes.end())
         {
-            weatherIcon = 1;
+            weatherIcon = 6;
         }
         else if (std::find(rainCodes.begin(), rainCodes.end(), weatherCode) != rainCodes.end())
         {
-            weatherIcon = 4;
+            weatherIcon = 8;
         }
         else if (std::find(snowCodes.begin(), snowCodes.end(), weatherCode) != snowCodes.end())
         {
-            weatherIcon = 5;
+            weatherIcon = 9;
         }
         else if (std::find(fogCodes.begin(), fogCodes.end(), weatherCode) != fogCodes.end())
         {
-            weatherIcon = 6;
+            weatherIcon = 3;
             iconY = 2;
         }
         else if (std::find(clearCodes.begin(), clearCodes.end(), weatherCode) != clearCodes.end())
         {
-            weatherIcon = 2;
+            weatherIcon = 11;
             iconY = 1;
             tempY = 9;
         }
         else if (std::find(cloudyCodes.begin(), cloudyCodes.end(), weatherCode) != cloudyCodes.end())
         {
-            weatherIcon = 0;
+            weatherIcon = 1;
             iconY = 2;
             tempY = 9;
         }
         else if (std::find(partyCloudyCodes.begin(), partyCloudyCodes.end(), weatherCode) != partyCloudyCodes.end())
         {
-            weatherIcon = 3;
+            weatherIcon = 7;
             iconY = 2;
         }
 
@@ -115,7 +134,6 @@ void WeatherPlugin::update()
             Screen.drawCharacter(9, tempY, Screen.readBytes(degreeSymbol), 4, 50);
             Screen.drawNumbers(3, tempY, {-temperature});
         }
-    }
 }
 
 const char *WeatherPlugin::getName() const

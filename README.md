@@ -2,6 +2,22 @@
 
 Turn your OBEGRÄNSAD LED Wall Lamp into a live drawing canvas
 
+## My changes
+
+Changes compared to the [original version](https://github.com/ph1p/ikea-led-obegraensad):
+ - New plugins:
+   - Draw Endpoint (using `/api/draw` endpoint)
+   - Home Assistant Weather
+   - Snake Clock
+   - Empty Screen
+ - Commented-out plugins (for memory saving):
+   - Weather
+   - Animation
+   - DDP
+ - Improved weather data caching
+ - Added endpoint returning JSON with the current display status
+ - Fixed drawing messages being interrupted by dynamic plugins
+
 > **⚠ Disclaimer**: Use this code and instructions at your own risk! Improper use may damage the device.
 > **Contribute**: Have suggestions or improvements? Feel free to submit a PR or open an issue. 😊
 
@@ -29,12 +45,16 @@ Turn your OBEGRÄNSAD LED Wall Lamp into a live drawing canvas
   - Circle
   - Clock
   - Big Clock
-  - Weather
+  - Weather (commented-out in main.cpp)
   - Rain
-  - Animation with the "Animation Creator in Web UI"
+  - Animation with the "Animation Creator in Web UI" (commented-out in main.cpp)
   - Firework
-  - DDP
+  - DDP (commented-out in main.cpp)
   - Pong Clock
+  - Empty Screen
+  - Draw Endpoint (using `/api/draw` endpoint)
+  - Home Assistant Weather
+  - Snake Clock
 
 </details>
 
@@ -108,6 +128,8 @@ code .
 
 #define OTA_USERNAME ""
 #define OTA_PASSWORD ""
+
+#define HA_TOKEN ""
 ```
 
 - Set variables inside `include/constants.h`.
@@ -298,6 +320,44 @@ curl http://your-server/api/data
 
 ```json
 [255, 255, 255, 0, 128, 255, 255, 0, ...]
+```
+
+---
+
+## Get Current Display Data in JSON
+
+To get the current displayed data as JSON. Be aware that the global brightness value gets applied AFTER these values.
+
+```
+GET http://your-server/api/data_json
+```
+
+#### Example `curl` Command:
+
+```bash
+curl http://your-server/api/data_json
+```
+
+### Response
+
+```json
+[255, 255, 255, 0, 128, 255, 255, 0, ...]
+```
+
+---
+
+## Set Current Display Data
+
+To set the current displayed data using JSON. Be aware that the global brightness value gets applied AFTER these values.
+
+```
+POST http://your-server/api/draw
+```
+
+#### Example `curl` Command:
+
+```bash
+curl -X POST http://your-server/api/draw -d 'draw=[255,255,255,0,128,255,255,0,...]
 ```
 
 ---

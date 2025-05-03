@@ -1,4 +1,5 @@
 #include "messages.h"
+#include "PluginManager.h"
 #include <SPI.h>
 
 Messages_ &Messages_::getInstance()
@@ -51,6 +52,9 @@ void Messages_::remove(int id)
 void Messages_::scroll()
 {
   Screen.persist();
+  if(activeMessages.empty()) return;
+  int pluginId = pluginManager.getActivePlugin() -> getId();
+  pluginManager.setActivePlugin("Empty Screen");
 
   for (auto it = activeMessages.begin(); it != activeMessages.end();)
   {
@@ -80,6 +84,7 @@ void Messages_::scroll()
     }
   }
 
+  pluginManager.setActivePluginById(pluginId);
   Screen.loadFromStorage();
 }
 

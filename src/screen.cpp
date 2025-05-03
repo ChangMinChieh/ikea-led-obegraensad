@@ -97,6 +97,16 @@ bool Screen_::isCacheEmpty() const
   return true;
 }
 
+bool Screen_::isEndpointCacheEmpty() const
+{
+  for (int i = 0; i < ROWS * COLS; i++)
+  {
+    if (endpointCache_[i] != 0)
+      return false;
+  }
+  return true;
+}
+
 void Screen_::cacheCurrent()
 {
   memcpy(cache_, renderBuffer_, ROWS * COLS);
@@ -105,6 +115,15 @@ void Screen_::cacheCurrent()
 void Screen_::restoreCache()
 {
   setRenderBuffer(cache_, true);
+}
+void Screen_::endpointCacheCurrent()
+{
+  memcpy(endpointCache_, renderBuffer_, ROWS * COLS);
+}
+
+void Screen_::endpointRestoreCache()
+{
+  setRenderBuffer(endpointCache_, true);
 }
 // CACHE END
 
@@ -130,10 +149,40 @@ void Screen_::loadFromStorage()
   storage.end();
 }
 
+void Screen_::loadFromEndpointStorage()
+{
+  storage.begin("led-wall", true);
+  setBrightness(255);
+
+  if (currentStatus == NONE)
+  {
+    clear();
+    storage.getBytes("endpoint_data", renderBuffer_, ROWS * COLS);
+  }
+  else
+  {
+    storage.getBytes("endpoint_data", endpointCache_, ROWS * COLS);
+  }
+
+  setBrightness(storage.getUInt("brightness", 255));
+  setCurrentRotation(storage.getUInt("rotation", 0));
+  storage.end();
+}
+
 void Screen_::persist()
 {
   storage.begin("led-wall");
   storage.putBytes("data", renderBuffer_, ROWS * COLS);
+  storage.putBytes("data", renderBuffer_, ROWS * COLS);
+  storage.putUInt("brightness", brightness_);
+  storage.putUInt("rotation", currentRotation);
+  storage.end();
+}
+void Screen_::persistEndpoint()
+{
+  storage.begin("led-wall");
+  storage.putBytes("endpoint_data", renderBuffer_, ROWS * COLS);
+  storage.putBytes("endpoint_data", renderBuffer_, ROWS * COLS);
   storage.putUInt("brightness", brightness_);
   storage.putUInt("rotation", currentRotation);
   storage.end();

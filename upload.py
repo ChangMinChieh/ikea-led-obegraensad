@@ -54,6 +54,6 @@ def on_upload(source, target, env):
                                  data=monitor,
                                  headers={'Content-Type': monitor.content_type})
         bar.close()
-        print(response,response.text)
+        print(response, response.text)
 
 env.Replace(UPLOADCMD=on_upload)

@@ -8,6 +8,8 @@ void handleGetInfo(AsyncWebServerRequest *request);
 void handleSetPlugin(AsyncWebServerRequest *request);
 void handleSetBrightness(AsyncWebServerRequest *request);
 void handleGetData(AsyncWebServerRequest *request);
+void handleGetDataJson(AsyncWebServerRequest *request);
+void handleDraw(AsyncWebServerRequest *request);
 void handleSetSchedule(AsyncWebServerRequest *request);
 void handleClearSchedule(AsyncWebServerRequest *request);
 void handleStopSchedule(AsyncWebServerRequest *request);
