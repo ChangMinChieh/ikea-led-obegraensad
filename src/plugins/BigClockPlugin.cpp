@@ -2,43 +2,44 @@
 
 void BigClockPlugin::setup()
 {
-  // loading screen
-  Screen.setPixel(4, 7, 1);
-  Screen.setPixel(5, 7, 1);
-  Screen.setPixel(7, 7, 1);
-  Screen.setPixel(8, 7, 1);
-  Screen.setPixel(10, 7, 1);
-  Screen.setPixel(11, 7, 1);
-
   previousMinutes = -1;
   previousHour = -1;
+  previousSecond = -1; // 現在對應到 .h 裡的定義了
+  previousHH.clear();
+  previousMM.clear();
+  Screen.clear();
 }
 
 void BigClockPlugin::loop()
 {
   if (getLocalTime(&timeinfo))
   {
+    // 每分鐘更新一次畫面
     if (previousHour != timeinfo.tm_hour || previousMinutes != timeinfo.tm_min)
     {
-      std::vector<int> hh = {(timeinfo.tm_hour - timeinfo.tm_hour % 10) / 10, timeinfo.tm_hour % 10};
-      std::vector<int> mm = {(timeinfo.tm_min - timeinfo.tm_min % 10) / 10, timeinfo.tm_min % 10};
-      bool leadingZero = (hh.at(0) == 0);
-      Screen.clear();
-      if (leadingZero)
-      {
-        hh.erase(hh.begin());
-        Screen.drawBigNumbers(COLS / 2, 0, hh);
-        Screen.drawBigNumbers(0, ROWS / 2, mm);
-      }
-      else
-      {
-        Screen.drawBigNumbers(0, 0, hh);
-        Screen.drawBigNumbers(0, ROWS / 2, mm);
-      }
-    }
+      std::vector<int> hh = {timeinfo.tm_hour / 10, timeinfo.tm_hour % 10};
+      std::vector<int> mm = {timeinfo.tm_min / 10, timeinfo.tm_min % 10};
 
-    previousMinutes = timeinfo.tm_min;
-    previousHour = timeinfo.tm_hour;
+      Screen.clear();
+      
+      // 小時 (y=0)
+      Screen.drawCharacter(2, 0, Screen.readBytes(fonts[1].data[hh[0]]), 8, Screen.getCurrentBrightness());
+      Screen.drawCharacter(9, 0, Screen.readBytes(fonts[1].data[hh[1]]), 8, Screen.getCurrentBrightness());
+      
+      // 分鐘 (y=9)
+      Screen.drawCharacter(2, 9, Screen.readBytes(fonts[1].data[mm[0]]), 8, Screen.getCurrentBrightness());
+      Screen.drawCharacter(9, 9, Screen.readBytes(fonts[1].data[mm[1]]), 8, Screen.getCurrentBrightness());
+
+      previousHH = hh;
+      previousMM = mm;
+      previousMinutes = timeinfo.tm_min;
+      previousHour = timeinfo.tm_hour;
+    }
+    
+    // 雖然沒用到秒數畫圖，但更新它避免邏輯錯誤
+    if (previousSecond != timeinfo.tm_sec) {
+        previousSecond = timeinfo.tm_sec;
+    }
   }
 }
 

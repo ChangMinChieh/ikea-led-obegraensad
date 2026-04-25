@@ -18,9 +18,15 @@ void BreakoutPlugin::initBricks()
   {
     this->bricks[i].x = i % this->X_MAX;
     this->bricks[i].y = i / this->X_MAX;
-    Screen.setPixelAtIndex(this->bricks[i].y * this->X_MAX + this->bricks[i].x, this->LED_TYPE_ON, 50);
+    Screen.setPixelAtIndex(this->bricks[i].y * this->X_MAX + this->bricks[i].x,
+                           this->LED_TYPE_ON,
+                           50);
 
+#ifdef ESP32
+    vTaskDelay(pdMS_TO_TICKS(25));
+#else
     delay(25);
+#endif
   }
 }
 
@@ -31,7 +37,9 @@ void BreakoutPlugin::newLevel()
   {
     this->paddle[i].x = (this->X_MAX / 2) - (this->PADDLE_WIDTH / 2) + i;
     this->paddle[i].y = this->Y_MAX - 1;
-    Screen.setPixelAtIndex(this->paddle[i].y * this->X_MAX + this->paddle[i].x, this->LED_TYPE_ON, 50);
+    Screen.setPixelAtIndex(this->paddle[i].y * this->X_MAX + this->paddle[i].x,
+                           this->LED_TYPE_ON,
+                           50);
   }
   this->ball.x = this->paddle[1].x;
   this->ball.y = this->paddle[1].y - 1;
@@ -201,7 +209,11 @@ void BreakoutPlugin::loop()
   case this->GAME_STATE_RUNNING:
     this->updateBall();
     this->updatePaddle();
+#ifdef ESP32
+    vTaskDelay(pdMS_TO_TICKS(random(100, 200)));
+#else
     delay(random(100, 200));
+#endif
     break;
   case this->GAME_STATE_END:
     this->initGame();

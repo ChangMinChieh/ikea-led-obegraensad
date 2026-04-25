@@ -12,6 +12,8 @@ void ClockPlugin::setup()
 
   previousMinutes = -1;
   previousHour = -1;
+  previousHH.clear();
+  previousMM.clear();
 }
 
 void ClockPlugin::loop()
@@ -20,13 +22,23 @@ void ClockPlugin::loop()
   {
     if (previousHour != timeinfo.tm_hour || previousMinutes != timeinfo.tm_min)
     {
-      Screen.clear();
-      Screen.drawNumbers(3, 2, {(timeinfo.tm_hour - timeinfo.tm_hour % 10) / 10, timeinfo.tm_hour % 10});
-      Screen.drawNumbers(3, 8, {(timeinfo.tm_min - timeinfo.tm_min % 10) / 10, timeinfo.tm_min % 10});
-    }
+      std::vector<int> hh = {(timeinfo.tm_hour - timeinfo.tm_hour % 10) / 10, timeinfo.tm_hour % 10};
+      std::vector<int> mm = {(timeinfo.tm_min - timeinfo.tm_min % 10) / 10, timeinfo.tm_min % 10};
 
-    previousMinutes = timeinfo.tm_min;
-    previousHour = timeinfo.tm_hour;
+      // 關鍵修復 1：每次更新都必須清空畫布，否則數字會重疊成發光方塊
+      Screen.clear();
+
+      // 關鍵修復 2：垂直堆疊佈局
+      // x=3 是為了讓 4+1+4=9 像素寬的數字組在 16 像素寬度中視覺置中
+      // y 座標設定為 1 和 9，拉開上下距離
+      Screen.drawNumbers(3, 1, hh);
+      Screen.drawNumbers(3, 9, mm);
+
+      previousHH = hh;
+      previousMM = mm;
+      previousMinutes = timeinfo.tm_min;
+      previousHour = timeinfo.tm_hour;
+    }
   }
 }
 

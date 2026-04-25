@@ -1,6 +1,6 @@
 #pragma once
-#include <vector>
 #include "screen.h"
+#include <vector>
 
 class Message
 {
@@ -28,7 +28,7 @@ public:
 class MessagePool
 {
 private:
-  static const size_t POOL_SIZE = 10;
+  static constexpr size_t POOL_SIZE = 10;
   Message pool[POOL_SIZE];
   bool used[POOL_SIZE];
 
@@ -59,7 +59,7 @@ public:
   void release(Message *msg)
   {
     ptrdiff_t index = msg - pool;
-    if (index >= 0 && index < POOL_SIZE)
+    if (index >= 0 && index < static_cast<ptrdiff_t>(POOL_SIZE))
     {
       used[index] = false;
       pool[index].reset();
@@ -84,8 +84,13 @@ public:
   Messages_(const Messages_ &) = delete;
   Messages_ &operator=(const Messages_ &) = delete;
 
-  void add(std::string text, int repeat = 0, int id = 0, int delay = 50,
-           std::vector<int> graph = {}, int miny = 0, int maxy = 15);
+  void add(std::string text,
+           int repeat = 0,
+           int id = 0,
+           int delay = 50,
+           std::vector<int> graph = {},
+           int miny = 0,
+           int maxy = 15);
   void remove(int id = 0);
   void scroll();
   void scrollMessageEveryMinute();
