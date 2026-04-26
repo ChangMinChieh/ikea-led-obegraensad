@@ -9,7 +9,7 @@
 // ==========================================
 // Home Assistant 連線設定
 // ==========================================
-const char* haServer = "http://192.168.1.30:8123";
+const char* haServer = HA_SERVER;
 const char* haToken  = HA_TOKEN;
 
 // ==========================================

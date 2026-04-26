@@ -57,18 +57,15 @@ template:
 
 使用 Visual Studio Code + PlatformIO 開啟。
 
-開啟 `src/plugins/ForecastPlugin.cpp`：
-
-修改 `haServer` 為你的 Home Assistant IP。
-
-在專案根目錄建立 `secrets.ini`，填入你的 Home Assistant 長期存取權杖（`platformio.ini` 會透過 `extra_configs = secrets.ini` 載入）：
+在專案根目錄建立 `secrets.ini`，填入 Home Assistant 連線資訊（`platformio.ini` 會透過 `extra_configs = secrets.ini` 載入）：
 
 ```ini
 [tokens]
 ha_token = "YOUR_LONG_LIVED_TOKEN"
+ha_server = "http://YOUR_HA_IP:8123"
 ```
 
-`platformio.ini` 會將此值注入 `HA_TOKEN`，`ForecastPlugin.cpp` 內的 `haToken` 會自動使用它。請確認 `secrets.ini` 已加入 `.gitignore`，避免金鑰外洩。
+`platformio.ini` 會將這些值注入 `HA_TOKEN` 與 `HA_SERVER`，`ForecastPlugin.cpp` 內的 `haToken`、`haServer` 會自動使用它們。請確認 `secrets.ini` 已加入 `.gitignore`，避免金鑰外洩。
 
 如果你的 Home Assistant 實體名稱和本專案預設不同，請在 `src/plugins/ForecastPlugin.cpp` 的 `entities[]` 清單中改成你的 entity ID。預設對照如下：
 
