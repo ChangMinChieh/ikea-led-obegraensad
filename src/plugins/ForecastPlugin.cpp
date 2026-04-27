@@ -5,6 +5,9 @@
 #include <HTTPClient.h>
 #include <WiFi.h>
 #endif
+#ifdef ENABLE_STORAGE
+#include <Preferences.h>
+#endif
 
 // ==========================================
 // Home Assistant 連線設定
@@ -23,8 +26,21 @@ int ForecastPlugin::mapCwaCode(int code) {
   return 1; // 雷雨
 }
 
+void ForecastPlugin::loadNightWindowConfig() {
+#ifdef ENABLE_STORAGE
+  Preferences prefs;
+  prefs.begin("cityclock", true);
+  int start = prefs.getInt("nightStart", 20);
+  int end = prefs.getInt("nightEnd", 23);
+  prefs.end();
+
+  if (start >= 0 && start <= 23) nightStartHour = start;
+  if (end >= 0 && end <= 23) nightEndHour = end;
+#endif
+}
+
 // ==========================================
-// 數據抓取 (包含氣象、濕度、PM2.5、CO2)
+// 數據抓取 (包含氣象、濕度、PM2.5、CO2、明日趨勢)
 // ==========================================
 void ForecastPlugin::fetchHAData() {
   if (WiFi.status() != WL_CONNECTED) return;
@@ -38,10 +54,15 @@ void ForecastPlugin::fetchHAData() {
     "sensor.cwa_min_temp",
     "sensor.alpstuga_air_quality_monitor_shi_du_2",
     "sensor.alpstuga_air_quality_monitor_pm2_5_2",
-    "sensor.alpstuga_air_quality_monitor_er_yang_hua_tan_2"
+    "sensor.alpstuga_air_quality_monitor_er_yang_hua_tan_2",
+    "sensor.tomorrow_avg_temp_trend",
+    "sensor.ming_ri_qi_wen_qu_shi"
   };
 
-  for (int i = 0; i < 7; i++) {
+  bool trendUpdated = false;
+  int newTrend = tomorrowTrend;
+
+  for (int i = 0; i < 9; i++) {
     String url = String(haServer) + "/api/states/" + String(entities[i]);
     http.begin(client, url);
     http.addHeader("Authorization", "Bearer " + String(haToken));
@@ -60,6 +81,7 @@ void ForecastPlugin::fetchHAData() {
         if (i == 4) haHumidity = state.toFloat();
         if (i == 5) haPM25 = state.toFloat();
         if (i == 6) haCO2 = state.toFloat();
+        if (i == 7 || i == 8) { newTrend = (int)roundf(state.toFloat()); trendUpdated = true; }
         
         // 警告邏輯：PM2.5 > 35 或 CO2 > 1000
         showAQIWarning = (haPM25 > 35.0f || haCO2 > 1000.0f);
@@ -68,6 +90,11 @@ void ForecastPlugin::fetchHAData() {
     }
     http.end();
     delay(100); 
+  }
+
+  if (trendUpdated) {
+    tomorrowTrend = newTrend;
+    hasTomorrowTrend = true;
   }
 }
 
@@ -107,8 +134,10 @@ void ForecastPlugin::drawInternalClock() {
 }
 
 void ForecastPlugin::setup() {
-  Screen.clear(); displayMode = 1; modeStart = millis();
+  Screen.clear(); displayMode = 5; modeStart = millis();
   _lastH = -1; _lastM = -1; lastFetch = millis();
+  loadNightWindowConfig();
+  lastNightConfigLoad = millis();
   fetchHAData();
 }
 
@@ -117,68 +146,73 @@ void ForecastPlugin::loop() {
     lastFetch = millis();
     fetchHAData();
   }
+  if (millis() - lastNightConfigLoad > 5000UL) {
+    loadNightWindowConfig();
+    lastNightConfigLoad = millis();
+  }
 
   unsigned long elapsed = millis() - modeStart;
+  int currentHour = _internalTime.tm_hour;
+  if (getLocalTime(&_internalTime)) {
+    currentHour = _internalTime.tm_hour;
+  } else {
+    time_t now = time(nullptr);
+    struct tm fallbackTime;
+    localtime_r(&now, &fallbackTime);
+    currentHour = fallbackTime.tm_hour;
+  }
+  bool showNightTrend = false;
+  if (nightStartHour == nightEndHour) {
+    showNightTrend = (currentHour == nightStartHour);
+  } else if (nightStartHour < nightEndHour) {
+    showNightTrend = (currentHour >= nightStartHour && currentHour <= nightEndHour);
+  } else {
+    showNightTrend = (currentHour >= nightStartHour || currentHour <= nightEndHour);
+  }
 
   switch (displayMode) {
-    case 1: // 天氣圖示
-      if (displayTimer.isReady(1000)) { Screen.clear(); if(hasData) Screen.drawWeather(0, 4, weatherIcon); }
-      if (elapsed >= 5000) { displayMode = 2; modeStart = millis(); displayTimer.forceReady(); }
-      break;
-
-    case 2: // 最高/最低溫 (優化後的箭頭)
+    case 2: // 溫度面板：白天高低溫、晚間明日趨勢
       if (displayTimer.isReady(1000)) {
+        static unsigned long lastDebugPrint = 0;
+        if (millis() - lastDebugPrint > 30000UL) {
+          Serial.printf("[ForecastPlugin] hour=%d night=%d range=%d~%d hasTrend=%d trend=%d\n",
+                        currentHour, showNightTrend, nightStartHour, nightEndHour, hasTomorrowTrend, tomorrowTrend);
+          lastDebugPrint = millis();
+        }
         Screen.clear();
-        // --- 最高溫：向上箭頭 ---
-        Screen.setPixel(2, 1, 1, myBrightness); // 尖端
-        Screen.setPixel(1, 2, 1, myBrightness); Screen.setPixel(2, 2, 1, myBrightness); Screen.setPixel(3, 2, 1, myBrightness); // 橫向加寬
-        Screen.setPixel(2, 3, 1, myBrightness); Screen.setPixel(2, 4, 1, myBrightness); // 箭身
-        drawTempValue(maxTemp, 2);
-
-        // --- 最低溫：向下箭頭 ---
-        Screen.setPixel(2, 9, 1, myBrightness); Screen.setPixel(2, 10, 1, myBrightness); // 箭身
-        Screen.setPixel(1, 11, 1, myBrightness); Screen.setPixel(2, 11, 1, myBrightness); Screen.setPixel(3, 11, 1, myBrightness); // 橫向加寬
-        Screen.setPixel(2, 12, 1, myBrightness); // 尖端
-        drawTempValue(minTemp, 9);
-      }
-      if (elapsed >= 5000) { displayMode = 3; modeStart = millis(); displayTimer.forceReady(); }
-      break;
-
-    case 3: // 體感
-      if (displayTimer.isReady(1000)) {
-        Screen.clear();
-        Screen.setPixel(2, 4, 1, myBrightness); Screen.setPixel(1, 5, 1, myBrightness); Screen.setPixel(3, 5, 1, myBrightness); Screen.setPixel(2, 6, 1, myBrightness);
-        drawTempValue((int)roundf(haFeelsLike), 4);
-      }
-      if (elapsed >= 5000) { displayMode = 4; modeStart = millis(); displayTimer.forceReady(); }
-      break;
-
-    case 4: // 濕度
-      if (displayTimer.isReady(1000)) {
-        Screen.clear();
-        Screen.setPixel(2, 4, 1, myBrightness); Screen.setPixel(1, 5, 1, myBrightness); Screen.setPixel(3, 5, 1, myBrightness); Screen.setPixel(2, 6, 1, myBrightness);
-        drawTempValue((int)roundf(haHumidity), 4);
-      }
-      if (elapsed >= 5000) { displayMode = (showAQIWarning) ? 6 : 5; modeStart = millis(); displayTimer.forceReady(); }
-      break;
-
-    case 6: // 空氣品質警告
-      if (displayTimer.isReady(1000)) {
-        Screen.clear();
-        // 驚嘆號 [!]
-        Screen.setPixel(1, 3, 1, myBrightness); Screen.setPixel(1, 4, 1, myBrightness); Screen.setPixel(1, 5, 1, myBrightness); Screen.setPixel(1, 6, 1, myBrightness); Screen.setPixel(1, 8, 1, myBrightness);
-        if (haPM25 > 35.0f) {
-           drawTempValue((int)roundf(haPM25), 4);
+        if (showNightTrend && hasTomorrowTrend) {
+          // 晚間顯示明日趨勢：上升/下降/持平 + 差值
+          if (tomorrowTrend > 0) {
+            Screen.setPixel(2, 4, 1, myBrightness);
+            Screen.setPixel(1, 5, 1, myBrightness); Screen.setPixel(2, 5, 1, myBrightness); Screen.setPixel(3, 5, 1, myBrightness);
+            Screen.setPixel(2, 6, 1, myBrightness); Screen.setPixel(2, 7, 1, myBrightness);
+          } else if (tomorrowTrend < 0) {
+            Screen.setPixel(2, 4, 1, myBrightness); Screen.setPixel(2, 5, 1, myBrightness);
+            Screen.setPixel(1, 6, 1, myBrightness); Screen.setPixel(2, 6, 1, myBrightness); Screen.setPixel(3, 6, 1, myBrightness);
+            Screen.setPixel(2, 7, 1, myBrightness);
+          } else {
+            Screen.setPixel(1, 5, 1, myBrightness); Screen.setPixel(2, 5, 1, myBrightness); Screen.setPixel(3, 5, 1, myBrightness);
+          }
+          drawTempValue(tomorrowTrend, 4);
         } else {
-           drawTempValue((int)roundf(haCO2), 4);
+          // 白天顯示今日高低溫
+          Screen.setPixel(2, 1, 1, myBrightness);
+          Screen.setPixel(1, 2, 1, myBrightness); Screen.setPixel(2, 2, 1, myBrightness); Screen.setPixel(3, 2, 1, myBrightness);
+          Screen.setPixel(2, 3, 1, myBrightness); Screen.setPixel(2, 4, 1, myBrightness);
+          drawTempValue(maxTemp, 2);
+
+          Screen.setPixel(2, 9, 1, myBrightness); Screen.setPixel(2, 10, 1, myBrightness);
+          Screen.setPixel(1, 11, 1, myBrightness); Screen.setPixel(2, 11, 1, myBrightness); Screen.setPixel(3, 11, 1, myBrightness);
+          Screen.setPixel(2, 12, 1, myBrightness);
+          drawTempValue(minTemp, 9);
         }
       }
-      if (elapsed >= 7000) { displayMode = 5; modeStart = millis(); _lastM = -1; }
+      if (elapsed >= 10000) { displayMode = 5; modeStart = millis(); _lastM = -1; displayTimer.forceReady(); }
       break;
 
     case 5: // 時鐘
       drawInternalClock();
-      if (elapsed >= 40000) { displayMode = 1; modeStart = millis(); displayTimer.forceReady(); Screen.clear(); }
+      if (elapsed >= 60000) { displayMode = 2; modeStart = millis(); displayTimer.forceReady(); Screen.clear(); }
       break;
   }
 }

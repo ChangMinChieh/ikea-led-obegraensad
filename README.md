@@ -6,6 +6,7 @@
 * **在地化氣象顯示**：
     * 整合 `OpenCWA` (中央氣象署)，即時顯示新莊區天氣圖示。
     * 顯示今日最高溫與最低溫預報，並使用自定義**向上/向下箭頭**增強視覺辨識。
+    * 支援「明日平均氣溫趨勢」面板（可顯示升溫/降溫/持平）。
 * **居家環境監測**：
     * 整合 **Alpstuga Air Quality Monitor**，顯示即時室內濕度。
     * **體感溫度**顯示 (Feels Like Temperature)。
@@ -14,6 +15,11 @@
 * **視覺優化**：
     * **統一亮度管理**：所有面板均可透過變數統一調光。
     * **時鐘亮度補償**：針對細線條時鐘字體進行視覺補償，避免看起來比圖示暗。
+* **新版輪播節奏**：
+    * **時鐘**顯示 60 秒。
+    * **溫度面板**顯示 10 秒：
+        * 白天顯示今日高/低溫。
+        * 夜間顯示明日氣溫趨勢（夜間時段可在 Web 介面調整，支援跨日例如 19~6）。
 
 ## 🛠 硬體需求
 * **IKEA OBEGRÄNSAD** LED 點陣燈板 (16x16)。
@@ -49,6 +55,10 @@ template:
         unique_id: cwa_min_temp
         unit_of_measurement: "°C"
         state: "{{ hourly_forecast['weather.opencwa_xin_zhuang_qu'].forecast[:8] | map(attribute='temperature') | min }}"
+      - name: "明日氣溫趨勢"
+        unique_id: tomorrow_avg_temp_trend
+        unit_of_measurement: "°C"
+        state: "{{ (states('sensor.tomorrow_avg_temp') | float(0)) - (states('sensor.today_avg_temp') | float(0)) }}"
 ```
 
 ## 👨‍💻 安裝與編譯
@@ -76,6 +86,19 @@ ha_server = "http://YOUR_HA_IP:8123"
 - `sensor.alpstuga_air_quality_monitor_shi_du_2`：濕度
 - `sensor.alpstuga_air_quality_monitor_pm2_5_2`：PM2.5
 - `sensor.alpstuga_air_quality_monitor_er_yang_hua_tan_2`：CO2
+- `sensor.tomorrow_avg_temp_trend`：明日平均氣溫趨勢（另支援備援 ID：`sensor.ming_ri_qi_wen_qu_shi`）
+
+## 🌐 Web 設定頁面
+
+燒錄完成後，可用瀏覽器進入裝置 IP（例如 `http://192.168.1.179`）進行設定：
+
+- `http://<裝置IP>/cityclock`
+  - 城市時鐘設定（目前僅支援台北）。
+  - 可調整夜間時段 `nightStart/nightEnd`，控制 Forecast 何時顯示「明日趨勢」。
+  - 提供「立即套用」，通常幾秒內生效。
+
+- `http://<裝置IP>/forecast`
+  - Forecast 設定頁（已中文化，且僅保留台北）。
 
 編譯並透過 USB 燒錄至 ESP32。
 

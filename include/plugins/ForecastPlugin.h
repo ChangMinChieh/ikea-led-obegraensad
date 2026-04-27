@@ -10,6 +10,8 @@ private:
   // 數據儲存
   int maxTemp = -99;
   int minTemp = -99;
+  int tomorrowTrend = 0;
+  bool hasTomorrowTrend = false;
   int weatherIcon = -1;
   float haFeelsLike = -99.0f;
   float haHumidity = -99.0f;
@@ -22,6 +24,9 @@ private:
   // 顯示控制
   int displayMode = 1;
   unsigned long modeStart = 0;
+  int nightStartHour = 20;
+  int nightEndHour = 23;
+  unsigned long lastNightConfigLoad = 0;
   
   // 統一亮度設定 (建議 150-200)
   int myBrightness = 180; 
@@ -35,6 +40,7 @@ private:
   void drawInternalClock();
   void drawTempValue(int temp, int y);
   int mapCwaCode(int code);
+  void loadNightWindowConfig();
 
 public:
   void setup() override;
