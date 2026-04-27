@@ -153,7 +153,8 @@ void ForecastPlugin::drawWeatherIcon(bool useTomorrow) {
   }
 
   if (icon >= 0 && icon < (int)weatherIcons.size()) {
-    Screen.drawWeather(0, 0, icon, myBrightness);
+    int iconY = useTomorrow ? 5 : 0;
+    Screen.drawWeather(0, iconY, icon, myBrightness);
     if (!useTomorrow) {
       drawUVIndex(12);
     }
