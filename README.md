@@ -7,7 +7,7 @@
     * 整合 `OpenCWA` (中央氣象署)，即時顯示新莊區天氣圖示。
     * 顯示今日最高溫與最低溫預報，並使用自定義**向上/向下三角形**增強視覺辨識。
     * 支援「明日平均氣溫趨勢」面板（可顯示升溫/降溫/持平）。
-    * 日間天氣圖示顯示 UV，夜間改為明日天氣圖示；日夜判斷共用 cityclock Web 的 nightStart/nightEnd 設定。
+    * 日間天氣圖示顯示 UV，使用 8x8 數字字型並上移 2px；夜間改為明日天氣圖示，日夜判斷共用 cityclock Web 的 nightStart/nightEnd 設定。
 * **居家環境監測**：
     * 整合 **Alpstuga Air Quality Monitor**，顯示即時室內濕度。
     * **體感溫度**顯示 (Feels Like Temperature)。
