@@ -23,6 +23,7 @@ private:
   bool showAQIWarning = false;
   int tomorrowWeatherIcon = -1;
   bool hasTomorrowWeatherIcon = false;
+  int haPrecipitationChance = -1; // 新增降雨機率變數
   
   // 顯示控制
   int displayMode = 1;
