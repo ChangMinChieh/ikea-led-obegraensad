@@ -1,4 +1,4 @@
-#include "plugins/ForecastPlugin.h"
+#include "plugins/HAForecastClockPlugin.h"
 #include <ArduinoJson.h>
 
 #ifdef ESP32
@@ -18,7 +18,7 @@ const char* haToken  = HA_TOKEN;
 // ==========================================
 // CWA 天氣代碼轉換
 // ==========================================
-int ForecastPlugin::mapCwaCode(int code) {
+int HAForecastClockPlugin::mapCwaCode(int code) {
   if (code == 1) return 2;             // 晴
   if (code >= 2 && code <= 3) return 3; // 多雲
   if (code >= 4 && code <= 7) return 0; // 陰
@@ -26,7 +26,7 @@ int ForecastPlugin::mapCwaCode(int code) {
   return 1; // 雷雨
 }
 
-void ForecastPlugin::loadNightWindowConfig() {
+void HAForecastClockPlugin::loadNightWindowConfig() {
 #ifdef ENABLE_STORAGE
   Preferences prefs;
   prefs.begin("cityclock", true);
@@ -42,7 +42,7 @@ void ForecastPlugin::loadNightWindowConfig() {
 // ==========================================
 // 數據抓取 (包含氣象、濕度、PM2.5、CO2、明日趨勢)
 // ==========================================
-void ForecastPlugin::fetchHAData() {
+void HAForecastClockPlugin::fetchHAData() {
   if (WiFi.status() != WL_CONNECTED) return;
   WiFiClient client;
   HTTPClient http;
@@ -108,7 +108,7 @@ void ForecastPlugin::fetchHAData() {
 // ==========================================
 // 繪製數值 (支援 CO2 四位數)
 // ==========================================
-void ForecastPlugin::drawTempValue(int val, int y) {
+void HAForecastClockPlugin::drawTempValue(int val, int y) {
   int absV = abs(val);
   if (val >= 1000) { 
     Screen.drawNumbers(2, y, {absV/1000, (absV/100)%10, (absV/10)%10, absV%10});
@@ -123,7 +123,7 @@ void ForecastPlugin::drawTempValue(int val, int y) {
   }
 }
 
-void ForecastPlugin::drawTrendOneDecimal(float value, int y) {
+void HAForecastClockPlugin::drawTrendOneDecimal(float value, int y) {
   int rounded = (int)roundf(fabsf(value));
   if (rounded > 99) rounded = 99; // guard for screen width
 
@@ -136,7 +136,7 @@ void ForecastPlugin::drawTrendOneDecimal(float value, int y) {
   }
 }
 
-void ForecastPlugin::drawUVIndex(int y) {
+void HAForecastClockPlugin::drawUVIndex(int y) {
   int uv = (int)roundf(haUVIndex);
   if (uv < 0) uv = 0;
   if (uv > 99) uv = 99;
@@ -150,7 +150,7 @@ void ForecastPlugin::drawUVIndex(int y) {
   }
 }
 
-void ForecastPlugin::drawRainProb(int y) {
+void HAForecastClockPlugin::drawRainProb(int y) {
   int prob = (int)roundf(haRainProb);
   if (prob < 0) prob = 0;
   if (prob > 99) prob = 99;
@@ -164,7 +164,7 @@ void ForecastPlugin::drawRainProb(int y) {
   }
 }
 
-void ForecastPlugin::drawWeatherIcon(bool useTomorrow) {
+void HAForecastClockPlugin::drawWeatherIcon(bool useTomorrow) {
   int icon = weatherIcon;
   if (useTomorrow && hasTomorrowWeatherIcon) {
     icon = tomorrowWeatherIcon;
@@ -186,7 +186,7 @@ void ForecastPlugin::drawWeatherIcon(bool useTomorrow) {
 // ==========================================
 // 繪製時鐘 (亮度補償)
 // ==========================================
-void ForecastPlugin::drawInternalClock() {
+void HAForecastClockPlugin::drawInternalClock() {
   if (getLocalTime(&_internalTime)) {
     if (_lastH != _internalTime.tm_hour || _lastM != _internalTime.tm_min) {
       Screen.clear();
@@ -200,7 +200,7 @@ void ForecastPlugin::drawInternalClock() {
   }
 }
 
-void ForecastPlugin::setup() {
+void HAForecastClockPlugin::setup() {
   Screen.clear(); displayMode = 5; modeStart = millis();
   _lastH = -1; _lastM = -1; lastFetch = millis();
   loadNightWindowConfig();
@@ -208,7 +208,7 @@ void ForecastPlugin::setup() {
   fetchHAData();
 }
 
-void ForecastPlugin::loop() {
+void HAForecastClockPlugin::loop() {
   if (millis() - lastFetch > 600000UL) {
     lastFetch = millis();
     fetchHAData();
@@ -255,7 +255,7 @@ void ForecastPlugin::loop() {
       if (displayTimer.isReady(1000)) {
         static unsigned long lastDebugPrint = 0;
         if (millis() - lastDebugPrint > 30000UL) {
-          Serial.printf("[ForecastPlugin] sec=%d displayMode=%d\n", currentSec, displayMode);
+          Serial.printf("[HAForecastClockPlugin] sec=%d displayMode=%d\n", currentSec, displayMode);
           lastDebugPrint = millis();
         }
         Screen.clear();
@@ -330,5 +330,5 @@ void ForecastPlugin::loop() {
   }
 }
 
-void ForecastPlugin::websocketHook(JsonDocument &request) {}
-const char *ForecastPlugin::getName() const { return "CWA HA Clock Plus"; }
+void HAForecastClockPlugin::websocketHook(JsonDocument &request) {}
+const char *HAForecastClockPlugin::getName() const { return "HAForecastClock"; }

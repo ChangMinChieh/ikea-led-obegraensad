@@ -87,9 +87,9 @@ ha_token = "YOUR_LONG_LIVED_TOKEN"
 ha_server = "http://YOUR_HA_IP:8123"
 ```
 
-`platformio.ini` 會將這些值注入 `HA_TOKEN` 與 `HA_SERVER`，`ForecastPlugin.cpp` 內的 `haToken`、`haServer` 會自動使用它們。請確認 `secrets.ini` 已加入 `.gitignore`，避免金鑰外洩。
+`platformio.ini` 會將這些值注入 `HA_TOKEN` 與 `HA_SERVER`，`HAForecastClockPlugin.cpp` 內的 `haToken`、`haServer` 會自動使用它們。請確認 `secrets.ini` 已加入 `.gitignore`，避免金鑰外洩。
 
-如果你的 Home Assistant 實體名稱和本專案預設不同，請在 `src/plugins/ForecastPlugin.cpp` 的 `entities[]` 清單中改成你的 entity ID。預設對照如下：
+如果你的 Home Assistant 實體名稱和本專案預設不同，請在 `src/plugins/HAForecastClockPlugin.cpp` 的 `entities[]` 清單中改成你的 entity ID。預設對照如下：
 
 - `sensor.opencwa_xin_zhuang_qu_weather_code`：OpenCWA 新莊區即時天氣代碼，用來決定螢幕上的天氣圖示
 - `sensor.opencwa_xin_zhuang_qu_feels_like_temperature`：OpenCWA 新莊區體感溫度
@@ -118,8 +118,8 @@ ha_server = "http://YOUR_HA_IP:8123"
 編譯並透過 USB 燒錄至 ESP32。
 
 ## 📂 專案結構
-* `include/plugins/ForecastPlugin.h`：插件標頭檔，定義類別結構與全域變數（如 `myBrightness`）。
-* `src/plugins/ForecastPlugin.cpp`：核心實作，包含 HA 資料抓取、圖形繪製與時間輪播邏輯。
+* `include/plugins/HAForecastClockPlugin.h`：插件標頭檔，定義類別結構與全域變數（如 `myBrightness`）。
+* `src/plugins/HAForecastClockPlugin.cpp`：核心實作，包含 HA 資料抓取、圖形繪製與時間輪播邏輯。
 
 ## 📝 版本紀錄
 v1.4 - 調整輪播節奏（46s/7s/7s），統一所有面板數字字型為系統內建字型 (`fonts[1]`) 以維持視覺一致性，優化降雨機率與 UV 指數切換邏輯。

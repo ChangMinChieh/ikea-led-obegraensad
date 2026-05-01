@@ -3,7 +3,7 @@
 #include "timing.h"
 #include <time.h>
 
-class ForecastPlugin : public Plugin {
+class HAForecastClockPlugin : public Plugin {
 private:
   NonBlockingDelay displayTimer;
   
