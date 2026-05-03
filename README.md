@@ -35,42 +35,105 @@
 
 ## 🛠 硬體需求
 * **IKEA OBEGRÄNSAD** LED 點陣燈板 (16x16)。
-* **ESP32** 開發板 (取代原廠控制器)。
+* **ESP32** 開發板 (取代 IKEA 原廠控制器)。
+* 硬體改裝與接線配置請參考[原專案](https://github.com/PiotrMachowski/ikea-led-obegraensad)
+* 接入後的硬體控制由 [IKEA OBEGRÄNSAD LED 整合](https://github.com/lucaam/ikea-obegransad-led)進行控制
 * **⚠️ 供電重要提醒**：
     * 請務必使用 **12W (5V/2.4A)** 以上的優質供電器（推薦使用 iPad 充電頭）。
     * **原因**：ESP32 在啟動 WiFi 抓取資料時瞬時電流較大，若使用一般 5W (5V/1A) 供電器會導致電壓掉落，造成系統反覆重啟。
 
 ## 🏠 Home Assistant 設定 (YAML)
 
-由於新版 Home Assistant 的氣象實體不直接開放預報屬性，需在 `configuration.yaml` 中加入「觸發型樣板感測器」來提取最高/最低溫：
+由於 Home Assistant 的氣象實體不直接開放預報屬性，需在 `configuration.yaml` 中加入「觸發型樣板感測器」來提取最高/最低溫：
 
 ```yaml
 template:
   - trigger:
       - platform: time_pattern
         minutes: "/15"
+      - platform: time
+        at: "20:00:00"
       - platform: homeassistant
         event: start
+      - platform: event
+        event_type: "force_update_weather"
     action:
       - service: weather.get_forecasts
         data:
-          type: hourly
+          type: daily
         target:
           entity_id: weather.opencwa_xin_zhuang_qu
-        response_variable: hourly_forecast
+        response_variable: daily_data
+  # 取得當天最高溫預報 
     sensor:
       - name: "CWA Max Temp"
         unique_id: cwa_max_temp
         unit_of_measurement: "°C"
-        state: "{{ hourly_forecast['weather.opencwa_xin_zhuang_qu'].forecast[:8] | map(attribute='temperature') | max }}"
+        state: >
+          {% set entity = 'weather.opencwa_xin_zhuang_qu' %}
+          {% if daily_data is defined and entity in daily_data %}
+            {% set fc = daily_data[entity].forecast %}
+            {{ fc[0].temperature if fc else 0 }}
+          {% else %} 0 {% endif %}
+  # 取得當天最低溫預報 
       - name: "CWA Min Temp"
         unique_id: cwa_min_temp
         unit_of_measurement: "°C"
-        state: "{{ hourly_forecast['weather.opencwa_xin_zhuang_qu'].forecast[:8] | map(attribute='temperature') | min }}"
+        state: >
+          {% set entity = 'weather.opencwa_xin_zhuang_qu' %}
+          {% if daily_data is defined and entity in daily_data %}
+            {% set fc = daily_data[entity].forecast %}
+            {{ fc[0].templow if fc else 0 }}
+          {% else %} 0 {% endif %}
+  # 取得新莊即時降雨機率
+      - name: "新莊即時降雨機率"
+        unique_id: xinzhuang_current_pop
+        unit_of_measurement: "%"
+        icon: mdi:weather-rainy
+        state: >
+          {% set entity = 'weather.opencwa_xin_zhuang_qu' %}
+          {% if daily_data is defined and entity in daily_data %}
+            {% set fc = daily_data[entity].forecast %}
+            {{ fc[0].precipitation_probability if fc and fc[0].precipitation_probability is defined else 0 }}
+          {% else %} 0 {% endif %}
+  # 取得新莊未來三小時降雨機率
+      - name: "新莊未來三小時降雨機率"
+        unique_id: xinzhuang_pop_next_3h
+        unit_of_measurement: "%"
+        icon: mdi:water-percent
+        state: >
+          {% set entity = 'weather.opencwa_xin_zhuang_qu' %}
+          {% if daily_data is defined and entity in daily_data %}
+            {% set fc = daily_data[entity].forecast %}
+            {# 直接抓取當下的降雨機率 #}
+            {{ fc[0].precipitation_probability if fc and fc[0].precipitation_probability is defined else 0 }}
+          {% else %} 0 {% endif %}
+ # 取得明日氣溫趨勢
       - name: "明日氣溫趨勢"
         unique_id: tomorrow_avg_temp_trend
         unit_of_measurement: "°C"
-        state: "{{ (states('sensor.tomorrow_avg_temp') | float(0)) - (states('sensor.today_avg_temp') | float(0)) }}"
+        state: >
+          {% set entity = 'weather.opencwa_xin_zhuang_qu' %}
+          {% if daily_data is defined and entity in daily_data %}
+            {% set fc = daily_data[entity].forecast %}
+            {% if fc | count >= 2 %}
+              {{ (fc[1].temperature - fc[0].temperature) | round(1) }}
+            {% else %} 0 {% endif %}
+          {% else %} 0 {% endif %}
+        attributes:
+          advice: >
+            {% set diff = states('sensor.tomorrow_avg_temp_trend') | float(0) %}
+            {% if diff > 1.5 %} "明天明顯變熱，建議穿輕薄衣物。"
+            {% elif diff < -1.5 %} "明天明顯轉冷，記得多加件外套！"
+            {% else %} "氣溫波動不大，維持今日穿著即可。"
+            {% endif %}
+# 未來 8 小時最低溫
+      - name: "未來 8 小時最低溫"
+        unique_id: next_8h_min_temp
+        unit_of_measurement: "°C"
+        state: >
+          {# Daily 模式僅提供當日最低溫值 #}
+          {{ states('sensor.cwa_min_temp') }}
 ```
 
 ## 👨‍💻 安裝與編譯
@@ -124,10 +187,10 @@ ha_server = "http://YOUR_HA_IP:8123"
 ## 📝 版本紀錄
 v1.4 - 調整輪播節奏（46s/7s/7s），統一所有面板數字字型為系統內建字型 (`fonts[1]`) 以維持視覺一致性，優化降雨機率與 UV 指數切換邏輯。
 
-v1.3 - 將趨勢箭頭改為高度 4px 正三角形，並優化天氣圖標位置。新增日間天氣圖示 UV 指數顯示。
+v1.3 - 將趨勢箭頭改為高度 4px 正三角形，並優化天氣圖標位置。新增 OpenUV 整合數據顯示。
 
-v1.2 - 加入 PM2.5 與 CO2 智慧警告頁面，優化最高/最低溫箭頭視覺。
+v1.2 - 加入日夜區分畫面，優化最高/最低溫箭頭視覺。
 
-v1.1 - 加入客廳濕度感測器整合，修正時鐘亮度偏暗問題。
+v1.1 - 加入客廳濕度感測器整合，修正不同頁面亮度問題。
 
-v1.0 - 整合 OpenCWA 新莊氣象數據，完成基礎輪播架構。
+v1.0 - 移除原本對於 Open-Meteo 的依賴，整合 Home Assistant 本地數據，完成基礎輪播架構。
