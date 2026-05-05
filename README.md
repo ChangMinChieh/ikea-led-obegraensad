@@ -182,10 +182,16 @@ ha_server = "http://YOUR_HA_IP:8123"
 使用 PlatformIO 編譯並燒錄至 ESP32。
 
 ## 📂 專案結構
+* `src/weather_animation.cpp`：定義動態天氣圖示的繪製邏輯（陰天、雨天、雷雨等動畫）。
+* `src/plugins/WeatherIcon.cpp`：專用的 WeatherIcon 面板插件，用於循環預覽所有動態天氣圖示。
 * `include/plugins/HAForecastClockPlugin.h`：插件標頭檔，定義類別結構與全域變數（如 `myBrightness`）。
 * `src/plugins/HAForecastClockPlugin.cpp`：核心實作，包含 HA 資料抓取、圖形繪製與時間輪播邏輯。
 
 ## 📝 版本紀錄
+v1.5 - 新增 `weather_animation` 動態圖示支援，並加入 `WeatherIcon` 預覽面板。優化天氣圖示的視覺動態效果。
+
+>>>>+++ REPLACE
+
 v1.4 - 調整輪播節奏（46s/7s/7s），統一所有面板數字字型為系統內建字型 (`fonts[1]`) 以維持視覺一致性，優化降雨機率邏輯與 UV 指數切換邏輯。
 
 v1.3 - 將趨勢箭頭改為高度 4px 正三角形，並優化天氣圖標位置。新增 OpenUV 整合數據顯示。
