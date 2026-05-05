@@ -44,7 +44,7 @@ void drawWeatherAnimation(int icon, int x, int y, int animationFrame, int bright
         Screen.setPixel(px, y + 7, 255, brightness);
       }
     }
-  } else if (icon == 1) {
+} else if (icon == 1) {
     // 雷雨：在雲朵下方閃爍的閃電
     Screen.drawWeather(x, y, icon, brightness);
     
@@ -64,5 +64,26 @@ void drawWeatherAnimation(int icon, int x, int y, int animationFrame, int bright
         Screen.setPixel(x + col, y + 7, 0, 0);
       }
     }
+  } else if (icon == 2) {
+    // 晴天：太陽光芒旋轉
+    int sunRotation = animationFrame % 4;
+    Screen.drawWeather(x, y, icon, brightness);
+    
+    // 繪製太陽光芒（依據 sunRotation 旋轉）
+    if (sunRotation == 0) {
+      Screen.setPixel(x + 7, y + 1, 255, brightness);
+      Screen.setPixel(x + 7, y + 13, 255, brightness);
+      Screen.setPixel(x + 1, y + 7, 255, brightness);
+      Screen.setPixel(x + 13, y + 7, 255, brightness);
+    } else if (sunRotation == 1) {
+      Screen.setPixel(x + 11, y + 3, 255, brightness);
+      Screen.setPixel(x + 3, y + 11, 255, brightness);
+      Screen.setPixel(x + 3, y + 3, 255, brightness);
+      Screen.setPixel(x + 11, y + 11, 255, brightness);
+    }
+    // 這裡可以繼續添加旋轉效果
+  } else {
+    // 預設靜態圖示
+    Screen.drawWeather(x, y, icon, brightness);
   }
 } 

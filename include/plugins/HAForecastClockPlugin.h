@@ -24,6 +24,8 @@ private:
   int tomorrowWeatherIcon = -1;
   bool hasTomorrowWeatherIcon = false;
   float haRainProb = 0.0f;     // 新增降雨機率
+  int animationFrame = 0;      // 天氣動畫幀
+  unsigned long lastAnimationUpdate = 0; // 上次動畫更新時間
   
   // 顯示控制
   int displayMode = 1;

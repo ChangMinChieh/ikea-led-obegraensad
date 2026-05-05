@@ -1,4 +1,5 @@
 #include "plugins/HAForecastClockPlugin.h"
+#include "weather_animation.h"
 #include <ArduinoJson.h>
 
 #ifdef ESP32
@@ -171,8 +172,9 @@ void HAForecastClockPlugin::drawWeatherIcon(bool useTomorrow) {
   }
 
   if (icon >= 0 && icon < (int)weatherIcons.size()) {
-    int iconY = useTomorrow ? 5 : 0;
-    Screen.drawWeather(0, iconY, icon, myBrightness);
+    // 晚間模式（顯示明日天氣）時，圖示上移 3 像素 (5 -> 2)
+    int iconY = useTomorrow ? 2 : 0;
+    drawWeatherAnimation(icon, 0, iconY, animationFrame, myBrightness);
     if (!useTomorrow) {
       // icon 0: 陰/陰雨, 4: 雨, 1: 雷雨
       if ((icon == 0 || icon == 4 || icon == 1) && haRainProb > 30.0f) {
@@ -211,6 +213,12 @@ void HAForecastClockPlugin::setup() {
 }
 
 void HAForecastClockPlugin::loop() {
+  // 每 500ms 更新一次動畫幀
+  if (millis() - lastAnimationUpdate > 500UL) {
+    lastAnimationUpdate = millis();
+    animationFrame = (animationFrame + 1) % 4;
+  }
+
   if (millis() - lastFetch > 600000UL) {
     lastFetch = millis();
     fetchHAData();
@@ -319,7 +327,7 @@ void HAForecastClockPlugin::loop() {
       break;
 
     case 3: // 天氣圖示面板
-      if (displayTimer.isReady(1000)) {
+      if (displayTimer.isReady(500)) {
         Screen.clear();
         // 日夜模式使用 cityclock web 介面儲存的 nightStart/nightEnd 設定
         drawWeatherIcon(showNightTrend);
