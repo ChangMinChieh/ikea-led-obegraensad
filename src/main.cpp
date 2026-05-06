@@ -54,6 +54,7 @@
 #include "plugins/EspooClockPlugin.h"
 #include "plugins/CityClockPlugin.h"
 #include "plugins/HAForecastClockPlugin.h"
+#include "plugins/WeatherIcon.h"
 #endif
 
 #include "asyncwebserver.h"
@@ -254,6 +255,7 @@ void baseSetup()
   pluginManager.addPlugin(new EspooClockPlugin());
   pluginManager.addPlugin(new CityClockPlugin());
   pluginManager.addPlugin(new HAForecastClockPlugin());
+  pluginManager.addPlugin(new WeatherIconPlugin());
   pluginManager.addPlugin(new AnimationPlugin());
   pluginManager.addPlugin(new DDPPlugin());
   pluginManager.addPlugin(new ArtNetPlugin());

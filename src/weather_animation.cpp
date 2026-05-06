@@ -45,43 +45,81 @@ void drawWeatherAnimation(int icon, int x, int y, int animationFrame, int bright
       }
     }
 } else if (icon == 1) {
-    // 雷雨：在雲朵下方閃爍的閃電
+    // 1. 先畫出基礎雲塊
     Screen.drawWeather(x, y, icon, brightness);
     
-    // 閃電動畫：每隔 500ms 切換一次閃電狀態
-    if (animationFrame % 2 == 0) {
-      // 畫出閃電（假設閃電位於圖標的特定位置）
-      Screen.setPixel(x + 7, y + 5, 255, brightness); // 閃電頂部
-      Screen.setPixel(x + 6, y + 6, 255, brightness);
-      Screen.setPixel(x + 8, y + 6, 255, brightness);
-      Screen.setPixel(x + 5, y + 7, 255, brightness);
-      Screen.setPixel(x + 9, y + 7, 255, brightness);
-    } else {
-      // 清除閃電
-      for (int col = 5; col <= 9; col++) {
-        Screen.setPixel(x + col, y + 5, 0, 0);
-        Screen.setPixel(x + col, y + 6, 0, 0);
-        Screen.setPixel(x + col, y + 7, 0, 0);
+    // 2. 清空閃電活動區域
+    // 閃電現在從 y+3 開始，高度 5px，加上位移 1px，範圍約在 y+3 ~ y+9
+    for (int col = 5; col <= 9; col++) {
+      for (int row = 3; row <= 9; row++) {
+        Screen.setPixel(x + col, y + row, 0, 0);
       }
     }
-  } else if (icon == 2) {
-    // 晴天：太陽光芒旋轉
-    int sunRotation = animationFrame % 4;
-    Screen.drawWeather(x, y, icon, brightness);
+
+    // 3. 決定位移 (0 或 1 像素)
+    int yOffset = (animationFrame % 2 == 0) ? 0 : 1;
     
-    // 繪製太陽光芒（依據 sunRotation 旋轉）
-    if (sunRotation == 0) {
-      Screen.setPixel(x + 7, y + 1, 255, brightness);
-      Screen.setPixel(x + 7, y + 13, 255, brightness);
-      Screen.setPixel(x + 1, y + 7, 255, brightness);
-      Screen.setPixel(x + 13, y + 7, 255, brightness);
-    } else if (sunRotation == 1) {
-      Screen.setPixel(x + 11, y + 3, 255, brightness);
-      Screen.setPixel(x + 3, y + 11, 255, brightness);
-      Screen.setPixel(x + 3, y + 3, 255, brightness);
-      Screen.setPixel(x + 11, y + 11, 255, brightness);
+    // 4. 向上移動 2px：將基礎起始點改為 y + 3
+    int startY = y + 3 + yOffset; 
+    int startX = x + 5;
+
+    // 5. 繪製閃電 (1x1, 1x1, 1x3, 1x1, 1x1)
+    // 第一列：--#--
+    Screen.setPixel(startX + 3, startY + 0, 255, brightness);
+    
+    // 第二列：-#---
+    Screen.setPixel(startX + 2, startY + 1, 255, brightness);
+    
+    // 第三列：-###-
+    Screen.setPixel(startX + 1, startY + 2, 255, brightness);
+    Screen.setPixel(startX + 2, startY + 2, 255, brightness);
+    Screen.setPixel(startX + 3, startY + 2, 255, brightness);
+    
+    // 第四列：-#---
+    Screen.setPixel(startX + 2, startY + 3, 255, brightness);
+    
+    // 第五列：-#---
+    Screen.setPixel(startX + 1, startY + 4, 255, brightness);
+} else if (icon == 3) {
+    // 晴時多雲：太陽固定，雲朵左右平滑擺動
+    
+    // 1. 優化位移邏輯：讓它呈現 0 -> 1 -> 0 -> -1 的循環
+    // 這樣雲朵移動會更平滑，不會有「跳格」感
+    int sequence[] = {0, 1, 0, -1};
+    int xOffset = sequence[animationFrame % 4];
+
+    // 2. 清空整個區域 (高度增加到 y+5 以覆蓋雲底)
+    for (int row = 0; row <= 5; row++) {
+      for (int col = 0; col < 16; col++) {
+        Screen.setPixel(x + col, y + row, 0, 0);
+      }
     }
-    // 這裡可以繼續添加旋轉效果
+
+    // 3. 太陽像素固定不動 (y+0 到 y+4)
+    int sunBrightness = brightness / 2; // 將太陽亮度調暗 50%
+    const int sunPixels[][2] = {
+      {10, 0}, {11, 0}, {12, 0},
+      {9, 1}, {10, 1}, {11, 1}, {12, 1}, {13, 1},
+      {8, 2}, {9, 2}, {10, 2}, {11, 2}, {12, 2}, {13, 2},
+      {10, 3}, {11, 3}, {12, 3},
+      {12, 4}, {13, 4}
+    };
+    for (auto &p : sunPixels) {
+      Screen.setPixel(x + p[0], y + p[1], 255, sunBrightness);
+    }
+
+    // 4. 雲朵像素 (加上 xOffset)
+    // 你的雲朵底部在 y+5，最高在 y+1
+    const int cloudPixels[][2] = {
+      {5, 1}, {6, 1}, {7, 1},
+      {4, 2}, {5, 2},
+      {2, 3}, {3, 3}, {4, 3},
+      {1, 4}, {2, 4}, {6, 4},
+      {2, 5}, {3, 5}, {4, 5}, {5, 5}, {6, 5}, {7, 5}, {8, 5}, {9, 5}, {10, 5}, {11, 5}, {12, 5}
+    };
+    for (auto &p : cloudPixels) {
+      Screen.setPixel(x + p[0] + xOffset, y + p[1], 255, brightness);
+    }
   } else {
     // 預設靜態圖示
     Screen.drawWeather(x, y, icon, brightness);
