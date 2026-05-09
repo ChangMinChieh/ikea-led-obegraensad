@@ -51,13 +51,14 @@ void HAForecastClockPlugin::fetchHAData() {
   const char* entities[] = {
     "sensor.opencwa_xin_zhuang_qu_weather_code",           // OpenCWA 新莊區即時天氣代碼，用於顯示天氣圖示
     "sensor.opencwa_xin_zhuang_qu_feels_like_temperature", // OpenCWA 新莊區體感溫度
-    "sensor.openuv_current_uv_index",                      // OpenUV 紫外線指數
+    "sensor.wo_de_jia_uv_index",                            // Google Weather 紫外線指數
     "sensor.cwa_max_temp",                                 // 今日最高溫（由自訂 HA 自動化/模板產生）
     "sensor.cwa_min_temp",                                 // 今日最低溫（由自訂 HA 自動化/模板產生）
     "sensor.tomorrow_avg_temp_trend",                      // 明日平均氣溫趨勢（可選備援）
     "sensor.ming_ri_qi_wen_qu_shi",                        // 明日氣溫趨勢備援，當主要趨勢 sensor 不可用時使用
     "sensor.opencwa_xin_zhuang_qu_tomorrow_weather_code", // OpenCWA 新莊區明日天氣代碼，用於明日天氣圖示
-    "sensor.xin_zhuang_ji_shi_jiang_yu_ji_lu",            // 新莊即時降雨機率  
+    "sensor.xin_zhuang_ji_shi_jiang_yu_ji_lu",            // Google Weather 降雨機率
+    "sensor.wo_de_jia_precipitation_probability",           // 新莊即時降雨機率（測試中）
     "sensor.alpstuga_air_quality_monitor_shi_du_2",        // 室內濕度
     "sensor.alpstuga_air_quality_monitor_pm2_5_2",         // 室內 PM2.5 濃度
     "sensor.alpstuga_air_quality_monitor_er_yang_hua_tan_2", // 室內 CO2 濃度
@@ -86,8 +87,8 @@ void HAForecastClockPlugin::fetchHAData() {
         if (i == 4) minTemp = (int)roundf(state.toFloat());
         if (i == 5 || i == 6) { newTrend = state.toFloat(); trendUpdated = true; }
         if (i == 7) { tomorrowWeatherIcon = mapCwaCode(state.toInt()); hasTomorrowWeatherIcon = true; }
-        if (i == 8) haRainProb = state.toFloat();
-        if (i == 9) haHumidity = state.toFloat();
+        if (i == 8) haHumidity = state.toFloat();
+        if (i == 9) haRainProb = state.toFloat();
         if (i == 10) haPM25 = state.toFloat();
         if (i == 11) haCO2 = state.toFloat();
         

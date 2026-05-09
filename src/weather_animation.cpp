@@ -81,46 +81,50 @@ void drawWeatherAnimation(int icon, int x, int y, int animationFrame, int bright
     // 第五列：-#---
     Screen.setPixel(startX + 1, startY + 4, 255, brightness);
 } else if (icon == 3) {
-    // 晴時多雲：太陽固定，雲朵左右平滑擺動
-    
-    // 1. 優化位移邏輯：讓它呈現 0 -> 1 -> 0 -> -1 的循環
-    // 這樣雲朵移動會更平滑，不會有「跳格」感
+    // 晴時多雲：太陽固定，雲朵擺動
     int sequence[] = {0, 1, 0, -1};
     int xOffset = sequence[animationFrame % 4];
 
-    // 2. 清空整個區域 (高度增加到 y+5 以覆蓋雲底)
+    // 1. 清空 16x6 區域
     for (int row = 0; row <= 5; row++) {
-      for (int col = 0; col < 16; col++) {
-        Screen.setPixel(x + col, y + row, 0, 0);
-      }
+        for (int col = 0; col < 16; col++) {
+            Screen.setPixel(x + col, y + row, 0, 0);
+        }
     }
 
-    // 3. 太陽像素固定不動 (y+0 到 y+4)
-    int sunBrightness = brightness / 2; // 將太陽亮度調暗 50%
+    // 2. 繪製太陽 (固定座標) - 這是你原始檔案中 index 2 (clear) 的變體
     const int sunPixels[][2] = {
-      {10, 0}, {11, 0}, {12, 0},
-      {9, 1}, {10, 1}, {11, 1}, {12, 1}, {13, 1},
-      {8, 2}, {9, 2}, {10, 2}, {11, 2}, {12, 2}, {13, 2},
-      {10, 3}, {11, 3}, {12, 3},
-      {12, 4}, {13, 4}
+        {10, 0}, {11, 0}, {12, 0},
+        {9, 1}, {10, 1}, {11, 1}, {12, 1}, {13, 1},
+        {8, 2}, {9, 2}, {10, 2}, {11, 2}, {12, 2}, {13, 2},
+        {10, 3}, {11, 3}, {12, 3}, {12, 4}, {13, 4}
     };
     for (auto &p : sunPixels) {
-      Screen.setPixel(x + p[0], y + p[1], 255, sunBrightness);
+        Screen.setPixel(x + p[0], y + p[1], 255, brightness);
     }
 
-    // 4. 雲朵像素 (加上 xOffset)
-    // 你的雲朵底部在 y+5，最高在 y+1
-    const int cloudPixels[][2] = {
-      {5, 1}, {6, 1}, {7, 1},
-      {4, 2}, {5, 2},
-      {2, 3}, {3, 3}, {4, 3},
-      {1, 4}, {2, 4}, {6, 4},
-      {2, 5}, {3, 5}, {4, 5}, {5, 5}, {6, 5}, {7, 5}, {8, 5}, {9, 5}, {10, 5}, {11, 5}, {12, 5}
+    // 3. 繪製雲朵 (動態偏移)
+    // 這裡我們定義 Frame 1 的基礎點
+    std::vector<std::pair<int, int>> cloud = {
+        {5, 1}, {6, 1}, {7, 1}, {4, 2}, {5, 2}, {2, 3}, {3, 3}, {4, 3},
+        {1, 4}, {2, 4}, {6, 4}, {2, 5}, {3, 5}, {4, 5}, {5, 5}, {6, 5}, 
+        {7, 5}, {8, 5}, {9, 5}, {10, 5}, {11, 5}, {12, 5}
     };
-    for (auto &p : cloudPixels) {
-      Screen.setPixel(x + p[0] + xOffset, y + p[1], 255, brightness);
+
+    for (auto &p : cloud) {
+        int cx = p.first;
+        int cy = p.second;
+
+        // 【關鍵：轉換為 Frame 3 的邏輯】
+        // 當偏移量為 1 時，我們微調最右邊的像素，讓它看起來像 Frame 3
+        if (xOffset == 1) {
+            if (cx == 12 && cy == 4) continue; // 移除這個點，讓右側變纖細
+            if (cx == 6 && cy == 4) cx = 7;    // 讓雲朵的中間結構稍作拉伸
+        }
+
+        Screen.setPixel(x + cx + xOffset, y + cy, 255, brightness);
     }
-  } else {
+} else {
     // 預設靜態圖示
     Screen.drawWeather(x, y, icon, brightness);
   }
