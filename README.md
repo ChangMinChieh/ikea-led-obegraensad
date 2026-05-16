@@ -159,14 +159,16 @@ ha_server = "http://YOUR_HA_IP:8123"
 
 如果你的 Home Assistant 實體名稱和本專案預設不同，請在 `src/plugins/HAForecastClockPlugin.cpp` 的 `entities[]` 清單中改成你的 entity ID。預設對照如下：
 
+- `sensor.wo_de_jia_weather_condition`: Google Weather 即時天氣代碼，用來決定天氣圖示
 - `sensor.opencwa_xin_zhuang_qu_weather_code`：OpenCWA 新莊區即時天氣代碼，用來決定天氣圖示
+- `sensor.wo_de_jia_precipitation_probability`: Google Weather 即時降雨機率
+- `sensor.wo_de_jia_uv_index`: Google Weather 紫外線指數
 - `sensor.opencwa_xin_zhuang_qu_tomorrow_weather_code`：OpenCWA 新莊區明日天氣代碼，用來決定明日的天氣圖示
-- `sensor.opencwa_xin_zhuang_qu_feels_like_temperature`：OpenCWA 新莊區體感溫度
-- ``sensor.openuv_current_uv_index`：OpenUV 紫外線指數
-- `sensor.cwa_max_temp`：今日最高溫（由上方 YAML 範例中的 HA 自動化/模板產生）
-- `sensor.cwa_min_temp`：今日最低溫（由上方 YAML 範例中的 HA 自動化/模板產生）
-- `sensor.tomorrow_avg_temp_trend`：明日平均氣溫趨勢（主要趨勢來源）
-- `sensor.ming_ri_qi_wen_qu_shi`：明日氣溫趨勢備援來源，當主要趨勢 sensor 不可用時使用
+- `sensor.opencwa_xin_zhuang_qu_forecast_precipitation_probability` OpenCWA 新莊區明日降雨機率
+- `sensor.jin_ri_zui_gao_wen_yu_bao`：今日最高溫（由 HA 自動化/模板產生）
+- `sensor.jin_ri_zui_di_wen_yu_bao`：今日最低溫（由 HA 自動化/模板產生）
+- `sensor.ming_ri_qi_wen_qu_shi`：明日氣溫趨勢（由 HA 自動化/模板產生）
+
 
 ## 🌐 Web 設定頁面
 
