@@ -81,8 +81,8 @@ void HAForecastClockPlugin::fetchHAData() {
         
         // 根據索引分配數值
         switch(i) {
-          case 0: weatherIcon = (int)val; break;
-          case 1: tomorrowWeatherIcon = (int)val; hasTomorrowWeatherIcon = true; break;
+          case 0: weatherIcon = mapCwaCode((int)val); break;
+          case 1: tomorrowWeatherIcon = mapCwaCode((int)val); hasTomorrowWeatherIcon = true; break;
           case 2: haRainProb = val; break;
           case 3: haUVIndex = val; break;
           case 4: maxTemp = (int)roundf(val); break;
