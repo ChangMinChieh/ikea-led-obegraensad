@@ -24,7 +24,8 @@ int HAForecastClockPlugin::mapCwaCode(int code) {
   if (code >= 2 && code <= 3) return 3; // 多雲
   if (code >= 4 && code <= 7) return 0; // 陰
   if (code >= 8 && code <= 22) return 4;// 雨
-  return 1; // 雷雨
+  if (code >= 23 && code <= 24) return 5; // 強風
+  return 1; // 其他預設為雷雨
 }
 
 void HAForecastClockPlugin::loadNightWindowConfig() {
@@ -48,25 +49,20 @@ void HAForecastClockPlugin::fetchHAData() {
   WiFiClient client;
   HTTPClient http;
   
+  // 按照你的清單重新整理索引 (0-6)
   const char* entities[] = {
-    "sensor.opencwa_xin_zhuang_qu_weather_code",           // OpenCWA 新莊區即時天氣代碼，用於顯示天氣圖示
-    "sensor.opencwa_xin_zhuang_qu_feels_like_temperature", // OpenCWA 新莊區體感溫度
-    "sensor.wo_de_jia_uv_index",                            // Google Weather 紫外線指數
-    "sensor.jin_ri_zui_gao_wen_yu_bao",                                 // 今日最高溫（由自訂 HA 自動化/模板產生）
-    "sensor.jin_ri_zui_di_wen_yu_bao",                                 // 今日最低溫（由自訂 HA 自動化/模板產生）
-    "sensor.tomorrow_avg_temp_trend",                      // 明日平均氣溫趨勢（可選備援）
-    "sensor.ming_ri_qi_wen_qu_shi",                        // 明日氣溫趨勢備援，當主要趨勢 sensor 不可用時使用
-    "sensor.opencwa_xin_zhuang_qu_forecast_condition",     // OpenCWA 新莊區明日天氣代碼，用於明日天氣圖示
-    "sensor.wo_de_jia_weather_condition",                  // Google Weather 即時天氣
-    "sensor.xin_zhuang_ji_shi_jiang_yu_ji_lu",            // Google Weather 降雨機率
-    "sensor.wo_de_jia_precipitation_probability",           // 新莊即時降雨機率（測試中）
-    "sensor.alpstuga_air_quality_monitor_shi_du_2",        // 室內濕度
-    "sensor.alpstuga_air_quality_monitor_pm2_5_2",         // 室內 PM2.5 濃度
-    "sensor.alpstuga_air_quality_monitor_er_yang_hua_tan_2", // 室內 CO2 濃度
+    "sensor.esp32_current_weather_code",           // 0: Google Weather 即時天氣代碼，用來決定白天面板天氣圖示
+    "sensor.esp32_tomorrow_weather_code",          // 1: Google Weather 明日天氣代碼，用來決定晚上面板天氣圖示
+    "sensor.wo_de_jia_precipitation_probability",  // 2: Google Weather 即時降雨機率
+    "sensor.wo_de_jia_uv_index",                   // 3: Google Weather 紫外線指數
+    "sensor.jin_ri_zui_gao_wen_yu_bao",            // 4: 今日最高溫
+    "sensor.jin_ri_zui_di_wen_yu_bao",             // 5: 今日最低溫
+    "sensor.ming_ri_qi_wen_qu_shi",                 // 6: 明日趨勢
+    "sensor.alpstuga_air_quality_monitor_shi_du_2", // 備用: 濕度
+    "sensor.alpstuga_air_quality_monitor_pm2_5_2",  // 備用: PM2.5
+    "sensor.alpstuga_air_quality_monitor_er_yang_hua_tan_2" // 備用: CO2
   };
 
-  bool trendUpdated = false;
-  float newTrend = tomorrowTrend;
   int entityCount = sizeof(entities) / sizeof(entities[0]);
 
   for (int i = 0; i < entityCount; i++) {
@@ -81,31 +77,28 @@ void HAForecastClockPlugin::fetchHAData() {
       String state = doc["state"].as<String>();
       
       if (state != "unknown" && state != "unavailable") {
-        if (i == 0) weatherIcon = mapCwaCode(state.toInt());
-        if (i == 1) haFeelsLike = state.toFloat();
-        if (i == 2) haUVIndex = state.toFloat();
-        if (i == 3) maxTemp = (int)roundf(state.toFloat());
-        if (i == 4) minTemp = (int)roundf(state.toFloat());
-        if (i == 5 || i == 6) { newTrend = state.toFloat(); trendUpdated = true; }
-        if (i == 7) { tomorrowWeatherIcon = mapCwaCode(state.toInt()); hasTomorrowWeatherIcon = true; }
-        if (i == 8) { /* Google Weather 即時天氣 - 待實現映射邏輯 */ }
-        if (i == 9) haHumidity = state.toFloat();
-        if (i == 10) haRainProb = state.toFloat();
-        if (i == 11) haPM25 = state.toFloat();
-        if (i == 12) haCO2 = state.toFloat();
+        float val = state.toFloat();
         
-        // 警告邏輯：PM2.5 > 35 或 CO2 > 1000
+        // 根據索引分配數值
+        switch(i) {
+          case 0: weatherIcon = (int)val; break;
+          case 1: tomorrowWeatherIcon = (int)val; hasTomorrowWeatherIcon = true; break;
+          case 2: haRainProb = val; break;
+          case 3: haUVIndex = val; break;
+          case 4: maxTemp = (int)roundf(val); break;
+          case 5: minTemp = (int)roundf(val); break;
+          case 6: tomorrowTrend = val; hasTomorrowTrend = true; break;
+          case 8: haPM25 = val; break;
+          case 9: haCO2 = val; break;
+        }
+        
+        // AQI 警報邏輯
         showAQIWarning = (haPM25 > 35.0f || haCO2 > 1000.0f);
         hasData = true;
       }
     }
     http.end();
-    delay(100); 
-  }
-
-  if (trendUpdated) {
-    tomorrowTrend = newTrend;
-    hasTomorrowTrend = true;
+    delay(50); // 稍微縮短延遲提高效率
   }
 }
 
@@ -169,21 +162,17 @@ void HAForecastClockPlugin::drawRainProb(int y) {
 }
 
 void HAForecastClockPlugin::drawWeatherIcon(bool useTomorrow) {
-  int icon = weatherIcon;
-  if (useTomorrow && hasTomorrowWeatherIcon) {
-    icon = tomorrowWeatherIcon;
-  }
+  int icon = useTomorrow ? tomorrowWeatherIcon : weatherIcon;
 
   if (icon >= 0 && icon < (int)weatherIcons.size()) {
-    // 晚間模式（顯示明日天氣）時，圖示上移 3 像素 (5 -> 2)
-    int iconY = useTomorrow ? 2 : 0;
+    int iconY = useTomorrow ? 2 : 0; 
     drawWeatherAnimation(icon, 0, iconY, animationFrame, myBrightness);
+
     if (!useTomorrow) {
-      // icon 0: 陰/陰雨, 4: 雨, 1: 雷雨
-      if ((icon == 0 || icon == 4 || icon == 1) && haRainProb > 30.0f) {
+      // 邏輯：下雨機率高於 30% 就強迫顯示雨傘/雨量，否則顯示紫外線
+      if (haRainProb > 30.0f) {
         drawRainProb(8);
       } else {
-        // 晴天 (icon 2) 或其他情況顯示 UV
         drawUVIndex(8);
       }
     }

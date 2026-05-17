@@ -2,7 +2,7 @@
 
 ![預覽圖](images/IKEA-OBEGRÄNSAD-picture.jpg)
 
-這是基於 [IKEA OBEGRÄNSAD LED 燈板](https://www.ikea.com.hk/zh/products/luminaires/wall-lamps-and-wall-spotlights/obegransad-art-80526254) 進行改裝的 ESP32 專案。本專案針對個人使用環境進行深度在地化優化，利用 Home Assistant 整合各種感測器、OpenUV 與中央氣象署 (CWA) 等整合數據進行資訊顯示。
+這是基於 [IKEA OBEGRÄNSAD LED 燈板](https://www.ikea.com.hk/zh/products/luminaires/wall-lamps-and-wall-spotlights/obegransad-art-80526254) 進行改裝的 ESP32 專案。本專案針對個人使用環境進行深度在地化優化，利用 Home Assistant 整合各種感測器、Google Weather 提供的數據進行資訊顯示。
 
 ## 🖼 畫面顯示範例
 
@@ -23,8 +23,7 @@
 
 ## 🌟 核心功能
 * **在地化氣象顯示**：
-    * 整合 `OpenCWA` (中央氣象署)，即時顯示新莊區天氣圖示。
-    * 整合 `OpenUV` 並且設定抓取頻率，提供即時顯示紫外線指數。
+    * 整合 `Google Weather` 即時顯示本地天氣圖示。
     * 顯示今日最高溫與最低溫預報，並使用自定義**向上/向下三角形**增強視覺辨識。
     * 顯示今日即時天氣圖示，並且依據天氣類型顯示 UV 或是降雨機率。
     * 夜間時顯示明日預報，使用「明日平均氣溫趨勢」面板，顯示升溫/降溫/持平預報。
@@ -34,9 +33,8 @@
         * 白天顯示今日高/低溫。
         * 夜間顯示明日氣溫趨勢（夜間時段可在 Web 介面調整，支援跨日例如 19~6）。
     * **天氣圖示面板**顯示 7 秒 (53-59秒)：
-        * 白天顯示當前天氣圖示與 UV 指數（或降雨機率）。
-        * 夜間顯示明日天氣預報圖示。
-        * （測試中）即時降雨機率透過 `OpenCWA` 雲端資訊資訊與本地濕度感應器進行比對計算修正預測值。        
+        * 白天顯示當前天氣圖示與 UV 指數，如果目前的天氣代碼是 0 (陰天)、4 (雨天) 或 1 (雷雨)，且降雨機率高於 30% 時，顯示降雨機率。
+        * 夜間顯示明日天氣預報圖示。     
 
 ## 🛠 硬體需求
 * **IKEA OBEGRÄNSAD** LED 點陣燈板 (16x16)。
@@ -56,8 +54,6 @@ template:
   - trigger:
       - platform: time_pattern
         minutes: "/15"
-      - platform: time
-        at: "20:00:00"
       - platform: homeassistant
         event: start
       - platform: event
@@ -67,78 +63,92 @@ template:
         data:
           type: daily
         target:
-          entity_id: weather.opencwa_xin_zhuang_qu
-        response_variable: daily_data
-  # 取得當天最高溫預報 
+          entity_id: weather.wo_de_jia
+        response_variable: google_daily_data
     sensor:
-      - name: "CWA Max Temp"
-        unique_id: cwa_max_temp
+      # 1. 今日最高溫預報
+      - name: "Google Weather Max Temp"
+        unique_id: google_today_max_temp
         unit_of_measurement: "°C"
         state: >
-          {% set entity = 'weather.opencwa_xin_zhuang_qu' %}
-          {% if daily_data is defined and entity in daily_data %}
-            {% set fc = daily_data[entity].forecast %}
-            {{ fc[0].temperature if fc else 0 }}
-          {% else %} 0 {% endif %}
-  # 取得當天最低溫預報 
-      - name: "CWA Min Temp"
-        unique_id: cwa_min_temp
+          {% set entity = 'weather.wo_de_jia' %}
+          {% if google_daily_data is defined and google_daily_data[entity] is defined %}
+            {{ google_daily_data[entity].forecast[0].temperature | float(0) }}
+          {% else %} unknown {% endif %}
+
+      # 2. 今日最低溫預報
+      - name: "Google Weather Min Temp"
+        unique_id: google_today_min_temp
         unit_of_measurement: "°C"
         state: >
-          {% set entity = 'weather.opencwa_xin_zhuang_qu' %}
-          {% if daily_data is defined and entity in daily_data %}
-            {% set fc = daily_data[entity].forecast %}
-            {{ fc[0].templow if fc else 0 }}
-          {% else %} 0 {% endif %}
-  # 取得新莊即時降雨機率
-      - name: "新莊即時降雨機率"
-        unique_id: xinzhuang_current_pop
-        unit_of_measurement: "%"
-        icon: mdi:weather-rainy
-        state: >
-          {% set entity = 'weather.opencwa_xin_zhuang_qu' %}
-          {% if daily_data is defined and entity in daily_data %}
-            {% set fc = daily_data[entity].forecast %}
-            {{ fc[0].precipitation_probability if fc and fc[0].precipitation_probability is defined else 0 }}
-          {% else %} 0 {% endif %}
-  # 取得新莊未來三小時降雨機率
-      - name: "新莊未來三小時降雨機率"
-        unique_id: xinzhuang_pop_next_3h
-        unit_of_measurement: "%"
-        icon: mdi:water-percent
-        state: >
-          {% set entity = 'weather.opencwa_xin_zhuang_qu' %}
-          {% if daily_data is defined and entity in daily_data %}
-            {% set fc = daily_data[entity].forecast %}
-            {# 直接抓取當下的降雨機率 #}
-            {{ fc[0].precipitation_probability if fc and fc[0].precipitation_probability is defined else 0 }}
-          {% else %} 0 {% endif %}
- # 取得明日氣溫趨勢
-      - name: "明日氣溫趨勢"
-        unique_id: tomorrow_avg_temp_trend
+          {% set entity = 'weather.wo_de_jia' %}
+          {% if google_daily_data is defined and google_daily_data[entity] is defined %}
+            {{ google_daily_data[entity].forecast[0].templow | float(0) }}
+          {% else %} unknown {% endif %}
+
+      # 3. 明天氣溫趨勢 (平均值比較)
+      - name: "Tomorrow Temp Trend"
+        unique_id: tomorrow_temp_trend_google
         unit_of_measurement: "°C"
         state: >
-          {% set entity = 'weather.opencwa_xin_zhuang_qu' %}
-          {% if daily_data is defined and entity in daily_data %}
-            {% set fc = daily_data[entity].forecast %}
+          {% set entity = 'weather.wo_de_jia' %}
+          {% if google_daily_data is defined and google_daily_data[entity] is defined %}
+            {% set fc = google_daily_data[entity].forecast %}
             {% if fc | count >= 2 %}
-              {{ (fc[1].temperature - fc[0].temperature) | round(1) }}
+              {% set today_avg = (fc[0].temperature + fc[0].templow) / 2 %}
+              {% set tomorrow_avg = (fc[1].temperature + fc[1].templow) / 2 %}
+              {{ (tomorrow_avg - today_avg) | round(1) }}
             {% else %} 0 {% endif %}
-          {% else %} 0 {% endif %}
+          {% else %} unknown {% endif %}
         attributes:
           advice: >
-            {% set diff = states('sensor.tomorrow_avg_temp_trend') | float(0) %}
-            {% if diff > 1.5 %} "明天明顯變熱，建議穿輕薄衣物。"
-            {% elif diff < -1.5 %} "明天明顯轉冷，記得多加件外套！"
-            {% else %} "氣溫波動不大，維持今日穿著即可。"
+            {% set diff = states('sensor.tomorrow_qi_wen_qu_shi') | float(0) %}
+            {% if diff > 1.5 %} "明天平均氣溫上升 {{ diff }}°C，會明顯變熱。"
+            {% elif diff < -1.5 %} "明天平均氣溫下降 {{ diff | abs }}°C，會明顯轉冷。"
+            {% else %} "氣溫波動不大，體感與今日相仿。"
             {% endif %}
-# 未來 8 小時最低溫
-      - name: "未來 8 小時最低溫"
-        unique_id: next_8h_min_temp
-        unit_of_measurement: "°C"
+          today_avg: >
+            {% set entity = 'weather.wo_de_jia' %}
+            {% if google_daily_data is defined and google_daily_data[entity] is defined %}
+              {% set fc = google_daily_data[entity].forecast %}
+              {{ (fc[0].temperature + fc[0].templow) / 2 }}
+            {% else %} N/A {% endif %}
+
+      # 4 輸出給 ESP32 的代碼 (今日)
+      - name: "esp32_current_weather_code"
+        unique_id: esp32_current_weather_code
         state: >
-          {# Daily 模式僅提供當日最低溫值 #}
-          {{ states('sensor.cwa_min_temp') }}
+          {% set cond = states('sensor.wo_de_jia_weather_condition') %}
+          {% set mapper = {
+            'sunny': 2, 'clear-night': 2, '晴': 2,
+            'cloudy': 0, 'overcast': 0, '陰': 0,
+            'partlycloudy': 3, '多雲': 3, '多雲時陰': 0, '多雲時晴': 3,
+            'rainy': 4, 'pouring': 4, 'rain': 4, '雨': 4, '陣雨': 4,
+            'lightning': 1, 'lightning-rainy': 1, '雷雨': 1,
+            'windy': 5, '強風': 5
+          } %}
+          {% if cond in mapper %} {{ mapper[cond] }}
+          {% elif '雨' in cond %} 4
+          {% elif '陰' in cond or '雲' in cond %} 0
+          {% else %} 3 {% endif %}
+
+      # 5 輸出給 ESP32 的代碼 (明日)
+      - name: "esp32_tomorrow_weather_code"
+        unique_id: esp32_tomorrow_weather_code
+        state: >
+          {% set entity = 'weather.wo_de_jia' %}
+          {% if google_daily_data is defined and google_daily_data[entity] is defined %}
+            {% set cond = google_daily_data[entity].forecast[1].condition %}
+            {% set mapper = {
+              'sunny': 2, 'clear-night': 2, 'cloudy': 0, 'overcast': 0,
+              'partlycloudy': 3, 'rainy': 4, 'pouring': 4, 'lightning': 1, 
+              'lightning-rainy': 1, 'windy': 5
+            } %}
+            {% if cond in mapper %} {{ mapper[cond] }}
+            {% else %} 3 {% endif %}
+          {% else %}
+            3
+          {% endif %}
 ```
 
 ## 👨‍💻 安裝與編譯
@@ -159,16 +169,13 @@ ha_server = "http://YOUR_HA_IP:8123"
 
 如果你的 Home Assistant 實體名稱和本專案預設不同，請在 `src/plugins/HAForecastClockPlugin.cpp` 的 `entities[]` 清單中改成你的 entity ID。預設對照如下：
 
-- `sensor.wo_de_jia_weather_condition`: Google Weather 即時天氣代碼，用來決定天氣圖示
-- `sensor.opencwa_xin_zhuang_qu_weather_code`：OpenCWA 新莊區即時天氣代碼，用來決定天氣圖示
+- `sensor.esp32_current_weather_code`: Google Weather 即時天氣代碼，用來決定天氣圖示（由 HA 自動化/模板產生）
+- `sensor.esp32_tomorrow_weather_code`：Google Weather 明日天氣代碼，用來決定天氣圖示（由 HA 自動化/模板產生）
 - `sensor.wo_de_jia_precipitation_probability`: Google Weather 即時降雨機率
 - `sensor.wo_de_jia_uv_index`: Google Weather 紫外線指數
-- `sensor.opencwa_xin_zhuang_qu_tomorrow_weather_code`：OpenCWA 新莊區明日天氣代碼，用來決定明日的天氣圖示
-- `sensor.opencwa_xin_zhuang_qu_forecast_precipitation_probability` OpenCWA 新莊區明日降雨機率
 - `sensor.jin_ri_zui_gao_wen_yu_bao`：今日最高溫（由 HA 自動化/模板產生）
 - `sensor.jin_ri_zui_di_wen_yu_bao`：今日最低溫（由 HA 自動化/模板產生）
 - `sensor.ming_ri_qi_wen_qu_shi`：明日氣溫趨勢（由 HA 自動化/模板產生）
-
 
 ## 🌐 Web 設定頁面
 
@@ -184,12 +191,26 @@ ha_server = "http://YOUR_HA_IP:8123"
 使用 PlatformIO 編譯並燒錄至 ESP32。
 
 ## 📂 專案結構
+* `src/signs.cpp`: 定義與繪製天氣圖示
 * `src/weather_animation.cpp`：定義動態天氣圖示的繪製邏輯（陰天、雨天、雷雨等動畫）。
 * `src/plugins/WeatherIcon.cpp`：專用的 WeatherIcon 面板插件，用於循環預覽所有動態天氣圖示。
 * `include/plugins/HAForecastClockPlugin.h`：插件標頭檔，定義類別結構與全域變數（如 `myBrightness`）。
 * `src/plugins/HAForecastClockPlugin.cpp`：核心實作，包含 HA 資料抓取、圖形繪製與時間輪播邏輯。
 
+## ☁️ 天氣圖示 (Index 0 - 7)
+索引 (Index),描述 (根據註釋/代碼),建議對應的天氣狀態
+0,Cloudy (陰天),陰天、多雲時陰
+1,Thunderstorm (雷雨),雷雨、強降雨
+2,Clear (晴天),晴朗 (白天)
+3,Mostly/Partly Cloudy (多雲),多雲、晴時多雲
+4,Rain (下雨),雨天、陣雨
+5,Snow (下雪),下雪 
+6,Fog (霧),霧、霾
+7,Moon (晴朗夜晚),晴朗 (夜晚)
+
 ## 📝 版本紀錄
+
+v1.5.2 - 全面更替資訊來源為 Google Weather 作為資訊來源。
 
 v1.5.1 - 新增 Google Weather 作為資訊來源，優化資訊顯示正確度。
 
